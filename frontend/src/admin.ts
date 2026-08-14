@@ -1,5 +1,6 @@
 // The admin console: a paginated document table with delete actions.
 // Served behind HTTP Basic Auth; the browser handles the credential prompt.
+import { fmtDate } from "./format";
 
 interface AdminDoc {
   id: string;
@@ -32,10 +33,6 @@ const errorEl = document.querySelector("#error") as HTMLElement;
 const prevBtn = document.querySelector("#prev") as HTMLButtonElement;
 const nextBtn = document.querySelector("#next") as HTMLButtonElement;
 
-function fmtTime(unix: number): string {
-  return unix ? new Date(unix * 1000).toLocaleString() : "-";
-}
-
 function fmtSize(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -67,25 +64,29 @@ async function load(): Promise<void> {
     const tr = document.createElement("tr");
 
     const idCell = document.createElement("td");
+    idCell.dataset.label = "Document";
     const link = document.createElement("a");
     link.href = `/#${doc.id}`;
     link.target = "_blank";
     link.textContent = doc.id;
     idCell.appendChild(link);
 
-    const cells = [
-      fmtSize(doc.sizeBytes),
-      doc.language || "plaintext",
-      String(doc.connections),
-      fmtTime(doc.updatedAt),
-      fmtTime(doc.expiresAt),
-    ].map((text) => {
+    const cells: [string, string][] = [
+      ["Size", fmtSize(doc.sizeBytes)],
+      ["Language", doc.language || "plaintext"],
+      ["Conns", String(doc.connections)],
+      ["Updated", fmtDate(doc.updatedAt)],
+      ["Expires", fmtDate(doc.expiresAt)],
+    ];
+    const cellEls = cells.map(([label, text]) => {
       const td = document.createElement("td");
+      td.dataset.label = label;
       td.textContent = text;
       return td;
     });
 
     const actionCell = document.createElement("td");
+    actionCell.className = "actions";
     const del = document.createElement("button");
     del.type = "button";
     del.className = "danger";
@@ -101,7 +102,7 @@ async function load(): Promise<void> {
     });
     actionCell.appendChild(del);
 
-    tr.append(idCell, ...cells, actionCell);
+    tr.append(idCell, ...cellEls, actionCell);
     rowsEl.appendChild(tr);
   }
 }

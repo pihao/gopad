@@ -7,6 +7,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { Connection } from "./connection";
 import type { CursorData, UserInfo } from "./connection";
 import { changesToOperation, cpToUtf16, operationToChanges, utf16ToCp } from "./conversion";
+import { fmtDate } from "./format";
 import { remoteCursorExtension, setRemoteCursors } from "./cursors";
 import type { RemoteCursorSet } from "./cursors";
 import { languageExtension, languages } from "./languages";
@@ -37,6 +38,8 @@ window.addEventListener("hashchange", () => location.reload());
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 const statusEl = $("#status");
+const statusTextEl = $("#status-text");
+const sidebarToggleEl = $<HTMLButtonElement>("#sidebar-toggle");
 const bannerEl = $("#banner");
 const docIdEl = $("#doc-id");
 const usersEl = $<HTMLUListElement>("#users");
@@ -50,6 +53,34 @@ const copyLinkBtn = $<HTMLButtonElement>("#copy-link");
 
 docIdEl.textContent = docId;
 $("#readonly-badge").hidden = !readonly;
+
+// --- Sidebar toggle (drawer on mobile, collapsible column on desktop) -------
+
+const mobileQuery = window.matchMedia("(max-width: 768px)");
+
+function setSidebar(open: boolean, persist: boolean): void {
+  document.body.classList.toggle("sidebar-open", open);
+  sidebarToggleEl.textContent = open ? "❮" : "❯";
+  // Only desktop toggles are remembered: the mobile drawer is transient,
+  // and the computed initial state must not overwrite the preference.
+  if (persist) localStorage.setItem("gopad-sidebar", open ? "1" : "0");
+}
+
+{
+  const applyDefault = () => {
+    const saved = localStorage.getItem("gopad-sidebar");
+    setSidebar(mobileQuery.matches ? false : saved !== "0", false);
+  };
+  applyDefault();
+  // Re-apply when crossing the mobile breakpoint (also covers environments
+  // whose initial viewport size settles only after load).
+  mobileQuery.addEventListener("change", applyDefault);
+}
+
+$("#sidebar-toggle").addEventListener("click", () => {
+  setSidebar(!document.body.classList.contains("sidebar-open"), !mobileQuery.matches);
+});
+$("#backdrop").addEventListener("click", () => setSidebar(false, false));
 
 // --- Local identity ---------------------------------------------------------
 
@@ -237,8 +268,16 @@ renderMe();
 
 // --- Connection -------------------------------------------------------------
 
-function setStatus(online: boolean): void {
-  statusEl.classList.toggle("online", online);
+// Connection states and wording follow rustpad's ConnectionStatus.
+const statusTexts = {
+  connected: "You are connected!",
+  disconnected: "Connecting to the server...",
+  desynchronized: "Disconnected, please refresh.",
+} as const;
+
+function setStatus(state: keyof typeof statusTexts): void {
+  statusEl.className = `status-dot ${state}`;
+  statusTextEl.textContent = statusTexts[state];
 }
 
 function showBanner(text: string): void {
@@ -254,13 +293,13 @@ const wsUrl = readonly
 const conn = new Connection(wsUrl, {
   onConnected() {
     if (killed) return;
-    setStatus(true);
+    setStatus("connected");
     sendMyInfo();
     client.resend();
     broadcastCursor();
   },
   onDisconnected(code) {
-    setStatus(false);
+    setStatus("disconnected");
     // The server re-sends full presence on reconnect; drop stale entries so
     // ghost users from dead connections don't accumulate.
     users.clear();
@@ -274,6 +313,7 @@ const conn = new Connection(wsUrl, {
       killed = true;
       showBanner("Out of sync with the server — reload the page to continue.");
       conn.dispose();
+      setStatus("desynchronized");
     }
   },
   onIdentity(id) {
@@ -310,7 +350,7 @@ const conn = new Connection(wsUrl, {
       ttlSelect.appendChild(opt);
     }
     ttlSelect.value = String(ttlSeconds);
-    expiresAtEl.textContent = `expires ${new Date(expiresAt * 1000).toLocaleString()}`;
+    expiresAtEl.textContent = `expires ${fmtDate(expiresAt)}`;
   },
   onKilled(reason) {
     killed = true;
@@ -319,6 +359,6 @@ const conn = new Connection(wsUrl, {
       effects: readOnlyCompartment.reconfigure([EditorState.readOnly.of(true), EditorView.editable.of(false)]),
     });
     conn.dispose();
-    setStatus(false);
+    setStatus("desynchronized");
   },
 });
