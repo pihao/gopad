@@ -1,0 +1,11 @@
+.DS_Store
+/gopad
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+
+# The frontend build output is vendored (built once, committed) so the Go
+# build needs no npm. Override the global ~/.gitignore "dist/" rule.
+!internal/server/dist/
+!internal/server/dist/**
