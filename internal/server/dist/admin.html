@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gopad Admin</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        background: #1f2430;
+        color: #d8dee9;
+        margin: 0;
+        padding: 24px;
+      }
+      h1 { font-size: 18px; margin: 0 0 16px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid #2c3242; }
+      th { color: #7b859c; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+      a { color: #88c0d0; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      button {
+        background: #2c3242; color: #d8dee9; border: 1px solid #3b4252;
+        border-radius: 5px; padding: 4px 10px; cursor: pointer;
+      }
+      button:hover { background: #3b4252; }
+      button.danger { color: #e06c75; }
+      .pager { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+      .muted { color: #7b859c; }
+      #error { color: #e06c75; margin: 10px 0; }
+    </style>
+    <script type="module" crossorigin src="/assets/admin-hA0BI9U-.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  </head>
+  <body>
+    <h1>Gopad Admin <span id="total" class="muted"></span></h1>
+    <div id="error"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Document</th><th>Size</th><th>Language</th><th>Conns</th>
+          <th>Updated</th><th>Expires</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="pager">
+      <button id="prev" type="button">← Prev</button>
+      <span id="page-label" class="muted"></span>
+      <button id="next" type="button">Next →</button>
+    </div>
+  </body>
+</html>
