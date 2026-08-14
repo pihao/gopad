@@ -12,6 +12,8 @@ build: backend
 
 backend:
 	$(GO) build -o gopad ./cmd/gopad
+	GOOS=linux GOARCH=arm64 $(GO) build -o gopad-linux-arm64 ./cmd/gopad
+	GOOS=linux GOARCH=amd64 $(GO) build -o gopad-linux-amd64 ./cmd/gopad
 
 ## frontend: regenerate internal/server/dist from frontend/ sources.
 ## Requires node/npm (or run it in a node container).

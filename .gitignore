@@ -1,5 +1,6 @@
 .DS_Store
 /gopad
+/gopad-linux-*
 *.db
 *.db-wal
 *.db-shm
