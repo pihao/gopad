@@ -344,10 +344,10 @@ func (d *Document) Evictable(now time.Time, idleFor time.Duration) bool {
 }
 
 // Stats returns live counters for the admin console.
-func (d *Document) Stats() (connections int, sizeBytes int, language string, updatedAt, expiresAt time.Time) {
+func (d *Document) Stats() (connections int, sizeBytes int, language string, createdAt, updatedAt, expiresAt time.Time) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return len(d.conns), len(d.text), d.language, d.updatedAt, d.updatedAt.Add(d.ttl)
+	return len(d.conns), len(d.text), d.language, d.createdAt, d.updatedAt, d.updatedAt.Add(d.ttl)
 }
 
 func (d *Document) expiryLocked() *ExpiryMsg {

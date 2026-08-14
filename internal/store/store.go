@@ -121,22 +121,37 @@ func (s *Store) DeleteExpired(now int64) (int64, error) {
 	return n, nil
 }
 
-// List returns rows ordered by most recently updated first.
-func (s *Store) List(offset, limit int) ([]Row, error) {
+// Meta is a Row without the text payload, for listings. SizeBytes is the
+// UTF-8 byte length of the text.
+type Meta struct {
+	ID         string
+	ReadonlyID string
+	SizeBytes  int64
+	Language   string
+	TTLSeconds int64
+	CreatedAt  int64
+	UpdatedAt  int64
+	ExpiresAt  int64
+}
+
+// ListMeta returns metadata for every document, in no particular order.
+// Sorting and pagination happen in the caller, which can overlay live
+// in-memory state (e.g. connection counts) before ordering.
+func (s *Store) ListMeta() ([]Meta, error) {
 	rows, err := s.db.Query(
-		`SELECT id, readonly_id, text, language, ttl_seconds, created_at, updated_at, expires_at
-		 FROM documents ORDER BY updated_at DESC, id LIMIT ? OFFSET ?`, limit, offset)
+		`SELECT id, readonly_id, length(CAST(text AS BLOB)), language, ttl_seconds, created_at, updated_at, expires_at
+		 FROM documents`)
 	if err != nil {
 		return nil, fmt.Errorf("store: list: %w", err)
 	}
 	defer rows.Close()
-	var out []Row
+	var out []Meta
 	for rows.Next() {
-		var r Row
-		if err := rows.Scan(&r.ID, &r.ReadonlyID, &r.Text, &r.Language, &r.TTLSeconds, &r.CreatedAt, &r.UpdatedAt, &r.ExpiresAt); err != nil {
+		var m Meta
+		if err := rows.Scan(&m.ID, &m.ReadonlyID, &m.SizeBytes, &m.Language, &m.TTLSeconds, &m.CreatedAt, &m.UpdatedAt, &m.ExpiresAt); err != nil {
 			return nil, fmt.Errorf("store: list scan: %w", err)
 		}
-		out = append(out, r)
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

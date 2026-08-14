@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -150,6 +151,61 @@ func TestAdminAuthAndListing(t *testing.T) {
 	d := list.Documents[0]
 	if d.ID != "admindoc" || d.Connections != 1 || d.SizeBytes != len("hello admin") {
 		t.Errorf("doc = %+v", d)
+	}
+}
+
+func TestAdminListSorting(t *testing.T) {
+	srv, wsBase := adminServer(t)
+
+	// Three documents with distinct sizes: s=1 byte, m=2, l=3.
+	for _, d := range []struct{ id, text string }{{"m", "mm"}, {"s", "s"}, {"l", "lll"}} {
+		c := newTestClient(t, wsBase+"/api/socket/"+d.id)
+		text := d.text
+		c.edit(func(string) *ot.Operation { return ot.New().Insert(text) })
+		waitClientSync(t, c)
+	}
+
+	fetchIDs := func(query string) []string {
+		t.Helper()
+		resp := adminReq(t, "GET", srv.URL+"/api/admin/documents?"+query, true)
+		var list adminListResponse
+		if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+			t.Fatal(err)
+		}
+		ids := make([]string, len(list.Documents))
+		for i, d := range list.Documents {
+			ids[i] = d.ID
+		}
+		return ids
+	}
+
+	if got := fetchIDs("sort=size&order=asc"); !slices.Equal(got, []string{"s", "m", "l"}) {
+		t.Errorf("size asc = %v", got)
+	}
+	if got := fetchIDs("sort=size&order=desc"); !slices.Equal(got, []string{"l", "m", "s"}) {
+		t.Errorf("size desc = %v", got)
+	}
+	// Time sorts can tie at second granularity (ties fall back to the id),
+	// so only verify the parameter is accepted and returns the full set.
+	got := fetchIDs("sort=created&order=asc")
+	slices.Sort(got)
+	if !slices.Equal(got, []string{"l", "m", "s"}) {
+		t.Errorf("created asc ids = %v", got)
+	}
+	// Pagination applies after sorting.
+	if got := fetchIDs("sort=size&order=asc&page=2&size=2"); !slices.Equal(got, []string{"l"}) {
+		t.Errorf("size asc page 2 = %v", got)
+	}
+	// CreatedAt is populated.
+	resp := adminReq(t, "GET", srv.URL+"/api/admin/documents", true)
+	var list adminListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range list.Documents {
+		if d.CreatedAt == 0 {
+			t.Errorf("doc %s has no createdAt", d.ID)
+		}
 	}
 }
 

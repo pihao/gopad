@@ -92,32 +92,35 @@ func TestDeleteExpired(t *testing.T) {
 	}
 }
 
-func TestListAndCount(t *testing.T) {
+func TestListMetaAndCount(t *testing.T) {
 	s := openTemp(t)
 	now := time.Now().Unix()
 	for i, id := range []string{"a", "b", "c"} {
-		s.Save(row(id, now+int64(i), 3600)) // c is most recent
+		s.Save(row(id, now+int64(i), 3600))
 	}
-	if n, _ := s.Count(); n != 3 {
-		t.Errorf("count = %d, want 3", n)
+	multibyte := row("d", now, 3600)
+	multibyte.Text = "中文🌍" // 10 UTF-8 bytes, 4 code points
+	if err := s.Save(multibyte); err != nil {
+		t.Fatal(err)
 	}
-	rows, err := s.List(0, 2)
+	if n, _ := s.Count(); n != 4 {
+		t.Errorf("count = %d, want 4", n)
+	}
+	metas, err := s.ListMeta()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 2 || rows[0].ID != "c" || rows[1].ID != "b" {
-		t.Errorf("page 1 = %v", rowIDs(rows))
+	if len(metas) != 4 {
+		t.Fatalf("got %d metas, want 4", len(metas))
 	}
-	rows, _ = s.List(2, 2)
-	if len(rows) != 1 || rows[0].ID != "a" {
-		t.Errorf("page 2 = %v", rowIDs(rows))
+	byID := make(map[string]Meta, len(metas))
+	for _, m := range metas {
+		byID[m.ID] = m
 	}
-}
-
-func rowIDs(rows []Row) []string {
-	out := make([]string, len(rows))
-	for i, r := range rows {
-		out[i] = r.ID
+	if got := byID["a"]; got.SizeBytes != int64(len("text of a")) || got.CreatedAt == 0 || got.ExpiresAt == 0 {
+		t.Errorf("meta a = %+v", got)
 	}
-	return out
+	if got := byID["d"]; got.SizeBytes != int64(len("中文🌍")) {
+		t.Errorf("multibyte size = %d, want %d bytes", got.SizeBytes, len("中文🌍"))
+	}
 }

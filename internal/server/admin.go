@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -58,56 +59,57 @@ func (s *Server) handleAdminList(w http.ResponseWriter, r *http.Request) {
 	if size < 1 || size > 200 {
 		size = 20
 	}
+	sortKey := r.URL.Query().Get("sort")
+	ascending := r.URL.Query().Get("order") == "asc"
 
-	var resp adminListResponse
-	resp.Page, resp.Size = page, size
-
+	// Collect all documents first (metadata only), overlaying live state for
+	// resident ones, then sort and paginate in one place. At the designed
+	// scale (thousands of documents) this is cheap and keeps sorting by
+	// live-only fields like connection counts consistent.
+	var docs []adminDoc
 	if s.store != nil {
 		// Persist pending changes first so the store is a complete listing.
 		s.Flush()
-		total, err := s.store.Count()
+		metas, err := s.store.ListMeta()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		rows, err := s.store.List((page-1)*size, size)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		resp.Total = total
-		for _, row := range rows {
+		for _, m := range metas {
 			d := adminDoc{
-				ID:        row.ID,
-				SizeBytes: len(row.Text),
-				Language:  row.Language,
-				CreatedAt: row.CreatedAt,
-				UpdatedAt: row.UpdatedAt,
-				ExpiresAt: row.ExpiresAt,
+				ID:        m.ID,
+				SizeBytes: int(m.SizeBytes),
+				Language:  m.Language,
+				CreatedAt: m.CreatedAt,
+				UpdatedAt: m.UpdatedAt,
+				ExpiresAt: m.ExpiresAt,
 			}
-			if doc := s.registry.Peek(row.ID); doc != nil {
-				d.Connections, d.SizeBytes, d.Language, _, _ = doc.Stats()
+			if doc := s.registry.Peek(m.ID); doc != nil {
+				d.Connections, d.SizeBytes, d.Language, _, _, _ = doc.Stats()
 			}
-			resp.Documents = append(resp.Documents, d)
+			docs = append(docs, d)
 		}
 	} else {
 		// Memory-only mode: list resident documents.
-		docs := s.registry.All()
-		resp.Total = len(docs)
-		start := min((page-1)*size, len(docs))
-		end := min(start+size, len(docs))
-		for _, doc := range sortDocsByUpdated(docs)[start:end] {
-			conns, bytes, lang, updated, expires := doc.Stats()
-			resp.Documents = append(resp.Documents, adminDoc{
+		for _, doc := range s.registry.All() {
+			conns, bytes, lang, created, updated, expires := doc.Stats()
+			docs = append(docs, adminDoc{
 				ID:          doc.ID(),
 				SizeBytes:   bytes,
 				Language:    lang,
 				Connections: conns,
+				CreatedAt:   created.Unix(),
 				UpdatedAt:   updated.Unix(),
 				ExpiresAt:   expires.Unix(),
 			})
 		}
 	}
+	sortAdminDocs(docs, sortKey, ascending)
+
+	resp := adminListResponse{Total: len(docs), Page: page, Size: size}
+	start := min((page-1)*size, len(docs))
+	end := min(start+size, len(docs))
+	resp.Documents = docs[start:end]
 	if resp.Documents == nil {
 		resp.Documents = []adminDoc{}
 	}
@@ -115,20 +117,34 @@ func (s *Server) handleAdminList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func sortDocsByUpdated(docs []*document.Document) []*document.Document {
-	sorted := make([]*document.Document, len(docs))
-	copy(sorted, docs)
-	for i := 1; i < len(sorted); i++ { // small n; insertion sort avoids extra imports
-		for j := i; j > 0; j-- {
-			_, _, _, uj, _ := sorted[j].Stats()
-			_, _, _, uj1, _ := sorted[j-1].Stats()
-			if !uj.After(uj1) {
-				break
-			}
-			sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+// sortAdminDocs orders docs by the given key ("size", "conns", "created",
+// "updated", "expires"; anything else means "updated"), descending unless
+// ascending is set, with the id as a stable tie-breaker.
+func sortAdminDocs(docs []adminDoc, key string, ascending bool) {
+	value := func(d adminDoc) int64 {
+		switch key {
+		case "size":
+			return int64(d.SizeBytes)
+		case "conns":
+			return int64(d.Connections)
+		case "created":
+			return d.CreatedAt
+		case "expires":
+			return d.ExpiresAt
+		default: // "updated"
+			return d.UpdatedAt
 		}
 	}
-	return sorted
+	sort.Slice(docs, func(i, j int) bool {
+		vi, vj := value(docs[i]), value(docs[j])
+		if vi != vj {
+			if ascending {
+				return vi < vj
+			}
+			return vi > vj
+		}
+		return docs[i].ID < docs[j].ID
+	})
 }
 
 func (s *Server) handleAdminDelete(w http.ResponseWriter, r *http.Request) {

@@ -19,8 +19,12 @@ interface AdminList {
   documents: AdminDoc[];
 }
 
+type SortKey = "updated" | "created" | "expires" | "size" | "conns";
+
 const PAGE_SIZE = 20;
 let page = 1;
+let sortKey: SortKey = "updated";
+let sortAsc = false;
 
 // Resolve API calls against an origin without credentials: when the page was
 // opened via a user:pass@host URL, relative fetch() URLs are rejected.
@@ -43,7 +47,9 @@ async function load(): Promise<void> {
   errorEl.textContent = "";
   let data: AdminList;
   try {
-    const resp = await fetch(`${apiBase}/api/admin/documents?page=${page}&size=${PAGE_SIZE}`);
+    const resp = await fetch(
+      `${apiBase}/api/admin/documents?page=${page}&size=${PAGE_SIZE}&sort=${sortKey}&order=${sortAsc ? "asc" : "desc"}`,
+    );
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     data = await resp.json();
   } catch (err) {
@@ -75,6 +81,7 @@ async function load(): Promise<void> {
       ["Size", fmtSize(doc.sizeBytes)],
       ["Language", doc.language || "plaintext"],
       ["Conns", String(doc.connections)],
+      ["Created", fmtDate(doc.createdAt)],
       ["Updated", fmtDate(doc.updatedAt)],
       ["Expires", fmtDate(doc.expiresAt)],
     ];
@@ -116,5 +123,40 @@ nextBtn.addEventListener("click", () => {
   load();
 });
 
+// --- Sorting: clickable table headers (desktop) + control bar (mobile) ------
+
+const sortHeaders = [...document.querySelectorAll<HTMLTableCellElement>("th[data-sort]")];
+const sortField = document.querySelector("#sort-field") as HTMLSelectElement;
+const sortDir = document.querySelector("#sort-dir") as HTMLButtonElement;
+for (const th of sortHeaders) th.dataset.label = th.textContent ?? "";
+
+function syncSortUI(): void {
+  for (const th of sortHeaders) {
+    const active = th.dataset.sort === sortKey;
+    th.classList.toggle("active", active);
+    th.textContent = th.dataset.label + (active ? (sortAsc ? " ▲" : " ▼") : "");
+  }
+  sortField.value = sortKey;
+  sortDir.textContent = sortAsc ? "↑ asc" : "↓ desc";
+}
+
+function setSort(key: SortKey, asc: boolean): void {
+  sortKey = key;
+  sortAsc = asc;
+  page = 1;
+  syncSortUI();
+  load();
+}
+
+for (const th of sortHeaders) {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sort as SortKey;
+    setSort(key, key === sortKey ? !sortAsc : false);
+  });
+}
+sortField.addEventListener("change", () => setSort(sortField.value as SortKey, sortAsc));
+sortDir.addEventListener("click", () => setSort(sortKey, !sortAsc));
+
+syncSortUI();
 load();
 setInterval(load, 15_000);
