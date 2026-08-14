@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gopad</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <span class="brand">Gopad</span>
+        <span id="status" class="status" title="connection status"></span>
+        <span id="readonly-badge" class="badge" hidden>read-only</span>
+        <span id="doc-id" class="doc-id"></span>
+        <span class="spacer"></span>
+        <button id="copy-link" type="button">Copy link</button>
+        <button id="copy-readonly" type="button" hidden>Copy read-only link</button>
+      </header>
+      <div id="banner" hidden></div>
+      <main>
+        <div id="editor"></div>
+        <aside id="sidebar">
+          <section id="me-section">
+            <h3>You</h3>
+            <div class="me-row">
+              <button id="hue-btn" type="button" title="Change color">
+                <span id="me-dot" class="dot"></span>
+              </button>
+              <input id="name-input" maxlength="24" autocomplete="off" />
+            </div>
+          </section>
+          <section>
+            <h3>Online users</h3>
+            <ul id="users"></ul>
+          </section>
+          <section>
+            <h3>Language</h3>
+            <select id="language"></select>
+          </section>
+          <section>
+            <h3>Expires</h3>
+            <select id="ttl"></select>
+            <div id="expires-at" class="muted"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
