@@ -4,10 +4,11 @@ import { Annotation, Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 
+import { generateName } from "./animals";
 import { Connection } from "./connection";
 import type { CursorData, UserInfo } from "./connection";
 import { changesToOperation, cpToUtf16, operationToChanges, utf16ToCp } from "./conversion";
-import { fmtDate } from "./format";
+import { fmtDate, fmtRelative } from "./format";
 import { remoteCursorExtension, setRemoteCursors } from "./cursors";
 import type { RemoteCursorSet } from "./cursors";
 import { languageExtension, languages } from "./languages";
@@ -40,18 +41,18 @@ const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel)
 const statusEl = $("#status");
 const statusTextEl = $("#status-text");
 const sidebarToggleEl = $<HTMLButtonElement>("#sidebar-toggle");
+const userIconSVG =
+  '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">' +
+  '<path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 1.5c-3.1 0-5.5 1.8-5.5 4V15h11v-1.5c0-2.2-2.4-4-5.5-4Z"/></svg>';
 const bannerEl = $("#banner");
-const docIdEl = $("#doc-id");
 const usersEl = $<HTMLUListElement>("#users");
 const nameInput = $<HTMLInputElement>("#name-input");
-const meDot = $("#me-dot");
 const hueBtn = $<HTMLButtonElement>("#hue-btn");
 const languageSelect = $<HTMLSelectElement>("#language");
 const ttlSelect = $<HTMLSelectElement>("#ttl");
 const expiresAtEl = $("#expires-at");
 const copyLinkBtn = $<HTMLButtonElement>("#copy-link");
 
-docIdEl.textContent = docId;
 $("#readonly-badge").hidden = !readonly;
 
 // --- Sidebar toggle (drawer on mobile, collapsible column on desktop) -------
@@ -87,7 +88,7 @@ $("#backdrop").addEventListener("click", () => setSidebar(false, false));
 const storedName = localStorage.getItem("gopad-name");
 const storedHue = Number(localStorage.getItem("gopad-hue"));
 let myInfo: UserInfo = {
-  name: storedName || `Guest ${1000 + Math.floor(Math.random() * 9000)}`,
+  name: storedName || generateName(),
   hue: Number.isFinite(storedHue) && storedHue >= 0 ? storedHue : Math.floor(Math.random() * 360),
 };
 nameInput.value = myInfo.name;
@@ -96,8 +97,11 @@ nameInput.value = myInfo.name;
 
 const users = new Map<number, UserInfo>();
 const cursors = new Map<number, CursorData>();
+// Bumped per cursor update; drives the caret label's show-then-fade replay.
+const cursorStamps = new Map<number, number>();
 let myId = -1;
 let killed = false;
+let expiresAt = 0; // unix seconds; 0 = unknown
 
 const remoteAnnotation = Annotation.define<boolean>();
 const languageCompartment = new Compartment();
@@ -162,6 +166,7 @@ function refreshRemoteCursors(): void {
       id,
       name: info.name,
       hue: info.hue,
+      stamp: cursorStamps.get(id) ?? 0,
       cursors: data.cursors.map((c) => cpToUtf16(text, c)),
       selections: data.selections.map(([a, b]) => [cpToUtf16(text, a), cpToUtf16(text, b)] as [number, number]),
     });
@@ -172,20 +177,30 @@ function refreshRemoteCursors(): void {
 // --- Sidebar ----------------------------------------------------------------
 
 function renderMe(): void {
-  meDot.style.backgroundColor = `hsl(${myInfo.hue}, 90%, 55%)`;
+  hueBtn.style.color = `hsl(${myInfo.hue}, 90%, 55%)`;
+  nameInput.style.color = `hsl(${myInfo.hue}, 90%, 65%)`;
 }
 
+// The "me" row (#me-row) is a persistent element so re-rendering the list
+// while the user is typing their name never steals focus; only the other
+// users' rows are rebuilt.
 function renderUsers(): void {
-  usersEl.replaceChildren();
-  const entries = [...users.entries()].sort((a, b) => a[0] - b[0]);
-  for (const [id, info] of entries) {
+  for (const li of [...usersEl.children]) {
+    if (li.id !== "me-row") li.remove();
+  }
+  const entries = [...users.entries()]
+    .filter(([id]) => id !== myId)
+    .sort((a, b) => a[0] - b[0]);
+  for (const [, info] of entries) {
     const li = document.createElement("li");
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    dot.style.backgroundColor = `hsl(${info.hue}, 90%, 55%)`;
+    const icon = document.createElement("span");
+    icon.className = "user-icon";
+    icon.innerHTML = userIconSVG;
     const name = document.createElement("span");
-    name.textContent = id === myId ? `${info.name} (you)` : info.name;
-    li.append(dot, name);
+    name.className = "user-name";
+    name.textContent = info.name;
+    name.style.color = `hsl(${info.hue}, 90%, 65%)`;
+    li.append(icon, name);
     usersEl.appendChild(li);
   }
 }
@@ -202,7 +217,12 @@ nameInput.addEventListener("change", () => {
   if (name) {
     myInfo = { ...myInfo, name };
     sendMyInfo();
+  } else {
+    nameInput.value = myInfo.name; // never commit an empty name
   }
+});
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") nameInput.blur();
 });
 
 hueBtn.addEventListener("click", () => {
@@ -258,7 +278,7 @@ if (!readonly) {
       copyRoBtn.addEventListener("click", () => {
         navigator.clipboard.writeText(`${location.origin}/#view/${readonlyId}`);
         copyRoBtn.textContent = "Copied!";
-        setTimeout(() => (copyRoBtn.textContent = "Copy read-only link"), 1200);
+        setTimeout(() => (copyRoBtn.textContent = "Copy read-only"), 1200);
       });
     })
     .catch(() => {});
@@ -279,6 +299,15 @@ function setStatus(state: keyof typeof statusTexts): void {
   statusEl.className = `status-dot ${state}`;
   statusTextEl.textContent = statusTexts[state];
 }
+
+// The relative wording ("expires in 23 hours") goes stale, so re-render it
+// every minute; the tooltip carries the absolute timestamp.
+function renderExpiry(): void {
+  if (!expiresAt) return;
+  expiresAtEl.textContent = `expires ${fmtRelative(expiresAt)}`;
+  expiresAtEl.title = fmtDate(expiresAt);
+}
+setInterval(renderExpiry, 60_000);
 
 function showBanner(text: string): void {
   bannerEl.textContent = text;
@@ -334,15 +363,17 @@ const conn = new Connection(wsUrl, {
     else {
       users.delete(id);
       cursors.delete(id);
+      cursorStamps.delete(id);
     }
     renderUsers();
     refreshRemoteCursors();
   },
   onUserCursor(id, data) {
     cursors.set(id, data);
+    cursorStamps.set(id, (cursorStamps.get(id) ?? 0) + 1);
     refreshRemoteCursors();
   },
-  onExpiry(ttlSeconds, expiresAt) {
+  onExpiry(ttlSeconds, expiresAtSec) {
     if (![...ttlSelect.options].some((o) => o.value === String(ttlSeconds))) {
       const opt = document.createElement("option");
       opt.value = String(ttlSeconds);
@@ -350,7 +381,8 @@ const conn = new Connection(wsUrl, {
       ttlSelect.appendChild(opt);
     }
     ttlSelect.value = String(ttlSeconds);
-    expiresAtEl.textContent = `expires ${fmtDate(expiresAt)}`;
+    expiresAt = expiresAtSec;
+    renderExpiry();
   },
   onKilled(reason) {
     killed = true;

@@ -9,6 +9,8 @@ export interface RemoteCursorSet {
   id: number;
   name: string;
   hue: number;
+  /** Bumped on every cursor update; a change replays the label fade-out. */
+  stamp: number;
   cursors: number[];
   selections: [number, number][];
 }
@@ -19,12 +21,15 @@ class CaretWidget extends WidgetType {
   constructor(
     readonly hue: number,
     readonly name: string,
+    readonly stamp: number,
   ) {
     super();
   }
 
   eq(other: CaretWidget): boolean {
-    return other.hue === this.hue && other.name === this.name;
+    // A different stamp forces the DOM to be rebuilt, restarting the
+    // show-then-fade animation of the name label.
+    return other.hue === this.hue && other.name === this.name && other.stamp === this.stamp;
   }
 
   toDOM(): HTMLElement {
@@ -32,7 +37,7 @@ class CaretWidget extends WidgetType {
     caret.className = "remote-caret";
     caret.style.borderLeftColor = `hsl(${this.hue}, 90%, 55%)`;
     const label = document.createElement("span");
-    label.className = "remote-caret-label";
+    label.className = "remote-caret-label flash";
     label.textContent = this.name;
     label.style.backgroundColor = `hsl(${this.hue}, 60%, 30%)`;
     caret.appendChild(label);
@@ -61,7 +66,7 @@ function buildDecorations(users: RemoteCursorSet[], docLen: number): DecorationS
       }
     }
     for (const pos of u.cursors) {
-      ranges.push(Decoration.widget({ widget: new CaretWidget(u.hue, u.name), side: 0 }).range(clamp(pos)));
+      ranges.push(Decoration.widget({ widget: new CaretWidget(u.hue, u.name, u.stamp), side: 0 }).range(clamp(pos)));
     }
   }
   return Decoration.set(ranges, true);
