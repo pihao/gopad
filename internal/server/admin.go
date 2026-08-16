@@ -177,13 +177,12 @@ func (s *Server) handleAdminDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAdminPage(w http.ResponseWriter, r *http.Request) {
-	data, err := distFS.ReadFile("dist/admin.html")
-	if err != nil {
+	page := s.site.page("admin.html")
+	if page == nil {
 		http.Error(w, "admin page not built: run `cd frontend && npm run build`", http.StatusNotImplemented)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(data)
+	writeHTML(w, page)
 }
 
 // handleReadonlyID returns the read-only share id of a document.

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/coder/websocket"
@@ -40,11 +41,17 @@ type Config struct {
 	// is empty the console is disabled entirely.
 	AdminUser     string
 	AdminPassword string
+	// BasePath mounts the app under a URL prefix (e.g. "/gopad") for
+	// deployments behind a reverse proxy. Empty means the domain root.
+	BasePath string
 }
 
 type Server struct {
 	registry      *document.Registry
 	mux           *http.ServeMux
+	handler       http.Handler
+	site          *site
+	basePath      string
 	log           *slog.Logger
 	store         *store.Store
 	flushInterval time.Duration
@@ -70,9 +77,12 @@ func New(cfg Config) *Server {
 	if cfg.EvictAfter == 0 {
 		cfg.EvictAfter = 10 * time.Minute
 	}
+	basePath := normalizeBasePath(cfg.BasePath)
 	s := &Server{
 		registry:      document.NewRegistry(cfg.DefaultTTL, cfg.MaxDocSize),
 		mux:           http.NewServeMux(),
+		site:          newSite(basePath),
+		basePath:      basePath,
 		log:           slog.Default(),
 		store:         cfg.Store,
 		flushInterval: cfg.FlushInterval,
@@ -93,12 +103,52 @@ func New(cfg Config) *Server {
 		s.mux.HandleFunc("GET /api/admin/documents", s.requireAdmin(s.handleAdminList))
 		s.mux.HandleFunc("DELETE /api/admin/documents/{id}", s.requireAdmin(s.handleAdminDelete))
 	}
-	s.mux.Handle("GET /", staticHandler())
+	s.mux.Handle("GET /", s.site)
+	s.handler = s.mux
+	if s.basePath != "" {
+		s.handler = stripBasePath(s.basePath, s.mux)
+	}
 	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
+}
+
+// BasePath is the normalized URL prefix the app is mounted under: either
+// empty (domain root) or a "/prefix" without a trailing slash.
+func (s *Server) BasePath() string { return s.basePath }
+
+// normalizeBasePath accepts the loose forms a user may write ("gopad",
+// "/gopad", "/gopad/") and returns "" or "/gopad".
+func normalizeBasePath(p string) string {
+	p = strings.Trim(strings.TrimSpace(p), "/")
+	if p == "" {
+		return ""
+	}
+	return "/" + p
+}
+
+// stripBasePath routes only requests under the prefix, handing the inner mux
+// the path it would have seen at the domain root.
+func stripBasePath(prefix string, next http.Handler) http.Handler {
+	stripped := http.StripPrefix(prefix, next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == prefix:
+			// Relative URLs on the page resolve against the mount point,
+			// so the bare prefix has to gain its trailing slash.
+			target := prefix + "/"
+			if r.URL.RawQuery != "" {
+				target += "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
+		case strings.HasPrefix(r.URL.Path, prefix+"/"):
+			stripped.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // Registry exposes the document registry (used by persistence and admin).

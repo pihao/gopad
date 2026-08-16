@@ -5,6 +5,7 @@ import { EditorView } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 import { generateName } from "./animals";
+import { basePath } from "./base";
 import { Connection } from "./connection";
 import type { CursorData, UserInfo } from "./connection";
 import { changesToOperation, cpToUtf16, operationToChanges, utf16ToCp } from "./conversion";
@@ -297,18 +298,20 @@ function flashCopied(btn: HTMLButtonElement, ok: boolean, label: string): void {
 }
 
 copyLinkBtn.addEventListener("click", () => {
-  copyText(`${location.origin}/#${docId}`).then((ok) => flashCopied(copyLinkBtn, ok, "Copy link"));
+  copyText(`${location.origin}${basePath}#${docId}`).then((ok) =>
+    flashCopied(copyLinkBtn, ok, "Copy link"),
+  );
 });
 
 // The writable page can hand out a read-only share link.
 if (!readonly) {
   const copyRoBtn = $<HTMLButtonElement>("#copy-readonly");
-  fetch(`/api/readonlyid/${docId}`)
+  fetch(`${basePath}api/readonlyid/${docId}`)
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
     .then(({ readonlyId }: { readonlyId: string }) => {
       copyRoBtn.hidden = false;
       copyRoBtn.addEventListener("click", () => {
-        copyText(`${location.origin}/#view/${readonlyId}`).then((ok) =>
+        copyText(`${location.origin}${basePath}#view/${readonlyId}`).then((ok) =>
           flashCopied(copyRoBtn, ok, "Copy read-only"),
         );
       });
@@ -348,8 +351,8 @@ function showBanner(text: string): void {
 
 const wsProto = location.protocol === "https:" ? "wss" : "ws";
 const wsUrl = readonly
-  ? `${wsProto}://${location.host}/api/readonly/${docId}`
-  : `${wsProto}://${location.host}/api/socket/${docId}`;
+  ? `${wsProto}://${location.host}${basePath}api/readonly/${docId}`
+  : `${wsProto}://${location.host}${basePath}api/socket/${docId}`;
 
 const conn = new Connection(wsUrl, {
   onConnected() {

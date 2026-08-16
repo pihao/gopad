@@ -30,6 +30,7 @@ func run() error {
 	cfg := server.Config{
 		AdminUser:     os.Getenv("ADMIN_USER"),
 		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
+		BasePath:      os.Getenv("BASE_PATH"),
 	}
 	if cfg.AdminUser == "" || cfg.AdminPassword == "" {
 		slog.Info("admin console disabled (set ADMIN_USER and ADMIN_PASSWORD to enable)")
@@ -78,6 +79,9 @@ func run() error {
 		httpServer.Shutdown(shutdownCtx)
 	}()
 
+	if bp := srv.BasePath(); bp != "" {
+		slog.Info("mounted under base path", "path", bp+"/")
+	}
 	slog.Info("gopad listening", "port", port)
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err

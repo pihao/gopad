@@ -1,5 +1,6 @@
 // The admin console: a paginated document table with delete actions.
 // Served behind HTTP Basic Auth; the browser handles the credential prompt.
+import { basePath } from "./base";
 import { fmtDate } from "./format";
 
 interface AdminDoc {
@@ -48,7 +49,7 @@ async function load(): Promise<void> {
   let data: AdminList;
   try {
     const resp = await fetch(
-      `${apiBase}/api/admin/documents?page=${page}&size=${PAGE_SIZE}&sort=${sortKey}&order=${sortAsc ? "asc" : "desc"}`,
+      `${apiBase}${basePath}api/admin/documents?page=${page}&size=${PAGE_SIZE}&sort=${sortKey}&order=${sortAsc ? "asc" : "desc"}`,
     );
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     data = await resp.json();
@@ -100,7 +101,7 @@ async function load(): Promise<void> {
     del.textContent = "Delete";
     del.addEventListener("click", async () => {
       if (!confirm(`Delete document "${doc.id}"? Connected users will be kicked.`)) return;
-      const resp = await fetch(`${apiBase}/api/admin/documents/${doc.id}`, { method: "DELETE" });
+      const resp = await fetch(`${apiBase}${basePath}api/admin/documents/${doc.id}`, { method: "DELETE" });
       if (!resp.ok && resp.status !== 404) {
         errorEl.textContent = `Delete failed: ${resp.status} ${resp.statusText}`;
         return;

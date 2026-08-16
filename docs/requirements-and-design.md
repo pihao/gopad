@@ -282,6 +282,12 @@ Vite + TypeScript,无 UI 框架(或按需引入极轻量方案),构建产物输�
 | `ADMIN_USER` / `ADMIN_PASSWORD` | 空 | 管理端凭证;任一为空则管理端关闭 |
 | `DEFAULT_TTL` | `24h` | 新文档默认 TTL(Go duration 格式) |
 | `MAX_DOC_SIZE` | `1048576` | 单文档字节上限 |
+| `BASE_PATH` | 空 | 子路径挂载前缀(如 `/gopad`),用于反代场景 |
+
+子路径挂载:服务端只接收带前缀的请求(前缀外一律 404),并在启动时把构建产物
+中的 HTML 改写一次——注入 `<base href="<prefix>/">`、把根绝对的 assets URL 加上
+前缀;前端所有 API / WebSocket / 分享链接都由 `<base>` 解析出的前缀拼出
+(`frontend/src/base.ts`)。因此反代只需原样透传路径,不要剥掉前缀。
 
 ### 16. 项目结构
 

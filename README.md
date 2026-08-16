@@ -46,6 +46,56 @@ docker run -p 3030:3030 -v gopad-data:/data \
 | `ADMIN_USER` / `ADMIN_PASSWORD` | _(empty)_ | Admin console credentials; console is disabled unless both are set |
 | `DEFAULT_TTL` | `24h` | TTL for new documents (Go duration) |
 | `MAX_DOC_SIZE` | `1048576` | Per-document size limit in bytes |
+| `BASE_PATH` | _(empty)_ | URL prefix to mount the app under, e.g. `/gopad` (see below) |
+
+## Behind a reverse proxy
+
+At the root of a domain (or a subdomain) nothing special is needed — just
+proxy everything through, with WebSocket upgrades enabled.
+
+To serve the app under a path instead, set `BASE_PATH` to that prefix and
+pass the requests through **unmodified** — the app expects to see the prefix
+and rewrites its own asset, API, WebSocket and share URLs accordingly. It
+serves nothing outside the prefix.
+
+```bash
+BASE_PATH=/gopad ./gopad
+```
+
+```nginx
+# In the http {} block, once:
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+    # ssl_certificate ...;
+
+    location /gopad {
+        proxy_pass http://127.0.0.1:3030;   # no trailing slash: keep the prefix
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;        # required: the WebSocket
+                                            # handshake checks Origin
+                                            # against the Host header
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 7d;              # sockets are idle between edits
+        proxy_send_timeout 7d;
+        proxy_buffering off;
+    }
+}
+```
+
+`BASE_PATH` accepts `gopad`, `/gopad` or `/gopad/` alike, and nested prefixes
+(`/tools/gopad`) work too. `https://your-domain.com/gopad` redirects to
+`/gopad/`.
 
 ## HTTP API
 
@@ -60,6 +110,8 @@ docker run -p 3030:3030 -v gopad-data:/data \
 | `GET /admin` | Admin console (Basic Auth) |
 | `GET /api/admin/documents?page=&size=` | Paginated document listing (Basic Auth) |
 | `DELETE /api/admin/documents/{id}` | Delete a document (Basic Auth) |
+
+All routes sit under `BASE_PATH` when it is set.
 
 ## Development
 
