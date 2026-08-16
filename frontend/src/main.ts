@@ -262,10 +262,42 @@ ttlSelect.addEventListener("change", () => {
   conn.send({ SetExpiry: { ttlSeconds: Number(ttlSelect.value) } });
 });
 
+// navigator.clipboard only exists in secure contexts (HTTPS or localhost), so
+// fall back to the legacy execCommand path when serving over plain HTTP.
+async function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the legacy path below.
+    }
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+function flashCopied(btn: HTMLButtonElement, ok: boolean, label: string): void {
+  btn.textContent = ok ? "Copied!" : "Copy failed";
+  setTimeout(() => (btn.textContent = label), 1200);
+}
+
 copyLinkBtn.addEventListener("click", () => {
-  navigator.clipboard.writeText(`${location.origin}/#${docId}`);
-  copyLinkBtn.textContent = "Copied!";
-  setTimeout(() => (copyLinkBtn.textContent = "Copy link"), 1200);
+  copyText(`${location.origin}/#${docId}`).then((ok) => flashCopied(copyLinkBtn, ok, "Copy link"));
 });
 
 // The writable page can hand out a read-only share link.
@@ -276,9 +308,9 @@ if (!readonly) {
     .then(({ readonlyId }: { readonlyId: string }) => {
       copyRoBtn.hidden = false;
       copyRoBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(`${location.origin}/#view/${readonlyId}`);
-        copyRoBtn.textContent = "Copied!";
-        setTimeout(() => (copyRoBtn.textContent = "Copy read-only"), 1200);
+        copyText(`${location.origin}/#view/${readonlyId}`).then((ok) =>
+          flashCopied(copyRoBtn, ok, "Copy read-only"),
+        );
       });
     })
     .catch(() => {});
