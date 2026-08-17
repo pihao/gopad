@@ -209,6 +209,29 @@ func TestAdminListSorting(t *testing.T) {
 	}
 }
 
+func TestAdminListIncludesUneditedResidentDocs(t *testing.T) {
+	st := openTempStore(t, t.TempDir())
+	srv := httptest.NewServer(New(Config{Store: st, AdminUser: "root", AdminPassword: "secret"}))
+	t.Cleanup(srv.Close)
+	wsBase := "ws" + strings.TrimPrefix(srv.URL, "http")
+
+	// Opening a document creates it in memory, but with no edits it is never
+	// dirty, so it is not in the store. It must still show up in the listing.
+	newTestClient(t, wsBase+"/api/socket/untouched")
+
+	resp := adminReq(t, "GET", srv.URL+"/api/admin/documents", true)
+	var list adminListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+		t.Fatal(err)
+	}
+	if list.Total != 1 || len(list.Documents) != 1 {
+		t.Fatalf("list = %+v", list)
+	}
+	if d := list.Documents[0]; d.ID != "untouched" || d.Connections != 1 {
+		t.Errorf("doc = %+v", d)
+	}
+}
+
 func TestAdminDeleteKicksConnections(t *testing.T) {
 	srv, wsBase := adminServer(t)
 

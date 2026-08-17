@@ -43,6 +43,20 @@ type adminDoc struct {
 	ExpiresAt   int64  `json:"expiresAt"`
 }
 
+// liveAdminDoc builds a listing row from a resident document's live state.
+func liveAdminDoc(doc *document.Document) adminDoc {
+	conns, bytes, lang, created, updated, expires := doc.Stats()
+	return adminDoc{
+		ID:          doc.ID(),
+		SizeBytes:   bytes,
+		Language:    lang,
+		Connections: conns,
+		CreatedAt:   created.Unix(),
+		UpdatedAt:   updated.Unix(),
+		ExpiresAt:   expires.Unix(),
+	}
+}
+
 type adminListResponse struct {
 	Total     int        `json:"total"`
 	Page      int        `json:"page"`
@@ -75,7 +89,9 @@ func (s *Server) handleAdminList(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		listed := make(map[string]bool, len(metas))
 		for _, m := range metas {
+			listed[m.ID] = true
 			d := adminDoc{
 				ID:        m.ID,
 				SizeBytes: int(m.SizeBytes),
@@ -89,19 +105,17 @@ func (s *Server) handleAdminList(w http.ResponseWriter, r *http.Request) {
 			}
 			docs = append(docs, d)
 		}
+		// Resident documents that were never edited are not dirty, so Flush
+		// did not store them — overlay them so the listing is store ∪ memory.
+		for _, doc := range s.registry.All() {
+			if !listed[doc.ID()] {
+				docs = append(docs, liveAdminDoc(doc))
+			}
+		}
 	} else {
 		// Memory-only mode: list resident documents.
 		for _, doc := range s.registry.All() {
-			conns, bytes, lang, created, updated, expires := doc.Stats()
-			docs = append(docs, adminDoc{
-				ID:          doc.ID(),
-				SizeBytes:   bytes,
-				Language:    lang,
-				Connections: conns,
-				CreatedAt:   created.Unix(),
-				UpdatedAt:   updated.Unix(),
-				ExpiresAt:   expires.Unix(),
-			})
+			docs = append(docs, liveAdminDoc(doc))
 		}
 	}
 	sortAdminDocs(docs, sortKey, ascending)
