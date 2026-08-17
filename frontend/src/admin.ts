@@ -1,7 +1,7 @@
 // The admin console: a paginated document table with delete actions.
 // Served behind HTTP Basic Auth; the browser handles the credential prompt.
 import { basePath } from "./base";
-import { fmtDate } from "./format";
+import { fmtDate, fmtRelative } from "./format";
 
 interface AdminDoc {
   id: string;
@@ -37,12 +37,19 @@ const pageLabel = document.querySelector("#page-label") as HTMLElement;
 const errorEl = document.querySelector("#error") as HTMLElement;
 const prevBtn = document.querySelector("#prev") as HTMLButtonElement;
 const nextBtn = document.querySelector("#next") as HTMLButtonElement;
+const relativeToggle = document.querySelector("#relative-times") as HTMLInputElement;
+
+relativeToggle.checked = localStorage.getItem("gopad-admin-relative") !== "0";
 
 function fmtSize(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
+
+// The last successful response, kept so display-only changes (the relative
+// times toggle) can re-render without refetching.
+let lastData: AdminList | null = null;
 
 async function load(): Promise<void> {
   errorEl.textContent = "";
@@ -57,6 +64,11 @@ async function load(): Promise<void> {
     errorEl.textContent = `Failed to load documents: ${err}`;
     return;
   }
+  lastData = data;
+  render(data);
+}
+
+function render(data: AdminList): void {
   totalEl.textContent = `· ${data.total} documents`;
   const pages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
   if (page > pages) {
@@ -78,18 +90,22 @@ async function load(): Promise<void> {
     link.textContent = doc.id;
     idCell.appendChild(link);
 
-    const cells: [string, string][] = [
+    // Relative times get the absolute timestamp as a tooltip, matching the
+    // editor's expiry display.
+    const relative = relativeToggle.checked;
+    const cells: [string, string, string?][] = [
       ["Size", fmtSize(doc.sizeBytes)],
       ["Language", doc.language || "plaintext"],
       ["Conns", String(doc.connections)],
-      ["Created", fmtDate(doc.createdAt)],
-      ["Updated", fmtDate(doc.updatedAt)],
-      ["Expires", fmtDate(doc.expiresAt)],
+      ["Created", relative ? fmtRelative(doc.createdAt) : fmtDate(doc.createdAt), fmtDate(doc.createdAt)],
+      ["Updated", relative ? fmtRelative(doc.updatedAt) : fmtDate(doc.updatedAt), fmtDate(doc.updatedAt)],
+      ["Expires", relative ? fmtRelative(doc.expiresAt) : fmtDate(doc.expiresAt), fmtDate(doc.expiresAt)],
     ];
-    const cellEls = cells.map(([label, text]) => {
+    const cellEls = cells.map(([label, text, title]) => {
       const td = document.createElement("td");
       td.dataset.label = label;
       td.textContent = text;
+      if (relative && title) td.title = title;
       return td;
     });
 
@@ -114,6 +130,11 @@ async function load(): Promise<void> {
     rowsEl.appendChild(tr);
   }
 }
+
+relativeToggle.addEventListener("change", () => {
+  localStorage.setItem("gopad-admin-relative", relativeToggle.checked ? "1" : "0");
+  if (lastData) render(lastData);
+});
 
 prevBtn.addEventListener("click", () => {
   page = Math.max(1, page - 1);

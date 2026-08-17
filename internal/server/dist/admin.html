@@ -15,7 +15,10 @@
         margin: 0;
         padding: 16px;
       }
-      h1 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+      h1 { font-size: 16px; font-weight: 700; margin: 0; }
+      #topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      .check-row { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #7b859c; }
+      .check-row input { margin: 0; accent-color: #5e81ac; }
       table { border-collapse: collapse; width: 100%; }
       th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid #2c3242; font-size: 14px; }
       th { color: #7b859c; font-weight: 600; }
@@ -62,11 +65,14 @@
         td.actions button { width: 100%; }
       }
     </style>
-    <script type="module" crossorigin src="/assets/admin-lCCBZr0J.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/format-RRBYtTvM.js">
+    <script type="module" crossorigin src="/assets/admin-CSmo3bwN.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/format-0vOt4NBI.js">
   </head>
   <body>
-    <h1>Gopad Admin <span id="total" class="muted"></span></h1>
+    <div id="topbar">
+      <h1>Gopad Admin <span id="total" class="muted"></span></h1>
+      <label class="check-row"><input type="checkbox" id="relative-times" checked /> Relative times</label>
+    </div>
     <div id="error"></div>
     <div id="sort-bar">
       <select id="sort-field">
