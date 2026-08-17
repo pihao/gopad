@@ -11,11 +11,6 @@
     <div id="backdrop"></div>
     <div id="app">
       <aside id="sidebar">
-        <div class="sidebar-head">
-          <span id="status" class="status-dot"></span>
-          <span id="status-text" class="status-text">Connecting to the server...</span>
-          <span id="readonly-badge" class="badge" hidden>read-only</span>
-        </div>
         <section>
           <h3>Document</h3>
           <div class="btn-row">
@@ -63,6 +58,11 @@
         </section>
       </aside>
       <main>
+        <header id="topbar">
+          <span id="status" class="status-dot"></span>
+          <span id="status-text" class="status-text">Connecting to the server...</span>
+          <span id="readonly-badge" class="badge" hidden>read-only</span>
+        </header>
         <div id="banner" hidden></div>
         <div id="editor"></div>
       </main>

@@ -1,7 +1,7 @@
 // Remote cursor and selection rendering as a CodeMirror extension.
 // Positions arrive here already converted to UTF-16 offsets.
 import { StateEffect, StateField } from "@codemirror/state";
-import type { Range } from "@codemirror/state";
+import type { Range, Text } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
 
@@ -22,6 +22,8 @@ class CaretWidget extends WidgetType {
     readonly hue: number,
     readonly name: string,
     readonly stamp: number,
+    /** First-line carets show the label below: above it would be clipped. */
+    readonly below: boolean,
   ) {
     super();
   }
@@ -29,7 +31,12 @@ class CaretWidget extends WidgetType {
   eq(other: CaretWidget): boolean {
     // A different stamp forces the DOM to be rebuilt, restarting the
     // show-then-fade animation of the name label.
-    return other.hue === this.hue && other.name === this.name && other.stamp === this.stamp;
+    return (
+      other.hue === this.hue &&
+      other.name === this.name &&
+      other.stamp === this.stamp &&
+      other.below === this.below
+    );
   }
 
   toDOM(): HTMLElement {
@@ -37,7 +44,7 @@ class CaretWidget extends WidgetType {
     caret.className = "remote-caret";
     caret.style.borderLeftColor = `hsl(${this.hue}, 90%, 55%)`;
     const label = document.createElement("span");
-    label.className = "remote-caret-label flash";
+    label.className = this.below ? "remote-caret-label flash below" : "remote-caret-label flash";
     label.textContent = this.name;
     label.style.backgroundColor = `hsl(${this.hue}, 60%, 30%)`;
     caret.appendChild(label);
@@ -49,9 +56,9 @@ class CaretWidget extends WidgetType {
   }
 }
 
-function buildDecorations(users: RemoteCursorSet[], docLen: number): DecorationSet {
+function buildDecorations(users: RemoteCursorSet[], doc: Text): DecorationSet {
   const ranges: Range<Decoration>[] = [];
-  const clamp = (p: number) => Math.min(Math.max(p, 0), docLen);
+  const clamp = (p: number) => Math.min(Math.max(p, 0), doc.length);
   for (const u of users) {
     for (const sel of u.selections) {
       const from = clamp(Math.min(sel[0], sel[1]));
@@ -66,7 +73,9 @@ function buildDecorations(users: RemoteCursorSet[], docLen: number): DecorationS
       }
     }
     for (const pos of u.cursors) {
-      ranges.push(Decoration.widget({ widget: new CaretWidget(u.hue, u.name, u.stamp), side: 0 }).range(clamp(pos)));
+      const p = clamp(pos);
+      const below = doc.lineAt(p).number === 1;
+      ranges.push(Decoration.widget({ widget: new CaretWidget(u.hue, u.name, u.stamp, below), side: 0 }).range(p));
     }
   }
   return Decoration.set(ranges, true);
@@ -77,7 +86,7 @@ const remoteCursorField = StateField.define<DecorationSet>({
   update(deco, tr) {
     deco = deco.map(tr.changes);
     for (const e of tr.effects) {
-      if (e.is(setRemoteCursors)) deco = buildDecorations(e.value, tr.newDoc.length);
+      if (e.is(setRemoteCursors)) deco = buildDecorations(e.value, tr.newDoc);
     }
     return deco;
   },

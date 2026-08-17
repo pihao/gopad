@@ -7,6 +7,9 @@
    the drawer take the full screen width. */
 :root {
   --sidebar-w: 320px;
+  /* 26px toggle button + 8px above and below, so the fixed toggle at
+     top: 8px sits vertically centered in the bar. */
+  --topbar-h: 42px;
 }
 
 html,
@@ -28,6 +31,21 @@ body {
 #app {
   display: flex;
   height: 100%;
+}
+
+/* --- Top status bar: first row of <main>; neither <main> nor the body
+       scrolls (the editor scrolls internally), so it stays put without
+       position: fixed --- */
+
+#topbar {
+  flex: none;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #171b24;
+  border-bottom: 1px solid #2c3242;
 }
 
 /* --- Sidebar toggle: sits at the sidebar's right edge when open, floats
@@ -69,14 +87,6 @@ body.sidebar-open #sidebar-toggle {
 
 body.sidebar-open #sidebar {
   margin-left: 0;
-}
-
-.sidebar-head {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding-right: 30px; /* room for the toggle button at the right edge */
-  min-height: 26px;
 }
 
 .status-dot {
@@ -292,7 +302,7 @@ main {
 }
 
 #banner {
-  padding: 8px 14px 8px 46px;
+  padding: 8px 14px;
   background: #7a2e2e;
   color: #ffdddd;
 }
@@ -310,18 +320,6 @@ main {
   overflow: auto;
   font-family: ui-monospace, Menlo, "SF Mono", Consolas, monospace;
   font-size: 13px;
-}
-
-/* Room for remote-caret name labels above the first line (they float
-   -1.35em over the caret and would otherwise be clipped). */
-#editor .cm-content {
-  padding-top: 22px;
-}
-
-/* Keep the first line clear of the fixed toggle button when the sidebar is
-   collapsed. */
-body:not(.sidebar-open) #editor .cm-content {
-  padding-top: 40px;
 }
 
 /* --- Mobile: sidebar becomes an overlay drawer --- */
@@ -355,11 +353,6 @@ body:not(.sidebar-open) #editor .cm-content {
     background: rgba(0, 0, 0, 0.5);
     z-index: 25;
   }
-
-  /* The drawer overlays the editor, so the toggle always floats above it. */
-  #editor .cm-content {
-    padding-top: 40px;
-  }
 }
 
 /* --- Remote cursors --- */
@@ -382,6 +375,12 @@ body:not(.sidebar-open) #editor .cm-content {
   transition: opacity 0.15s;
   pointer-events: none;
   z-index: 10;
+}
+
+/* On the first line the label would be clipped by the editor's top edge,
+   so it flips to just below the caret instead. */
+.remote-caret-label.below {
+  top: calc(100% + 2px);
 }
 
 .remote-caret:hover .remote-caret-label,
