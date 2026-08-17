@@ -141,6 +141,7 @@ const view = new EditorView({
         const isRemote = update.transactions.some((tr) => tr.annotation(remoteAnnotation));
         if (update.docChanged && !isRemote) {
           client.localEdit(changesToOperation(update.startState.doc, update.changes));
+          renderStatus(); // the edit is now in flight: "Saving..."
         }
         if ((update.selectionSet || update.docChanged) && !isRemote) {
           window.clearTimeout(cursorTimer);
@@ -340,17 +341,63 @@ renderMe();
 
 // --- Connection -------------------------------------------------------------
 
-// Connection states and wording follow rustpad's ConnectionStatus.
-const statusTexts = {
-  connected: "You are connected!",
-  disconnected: "Connecting to the server...",
-  desynchronized: "Disconnected, please refresh.",
-} as const;
+// Connection states follow rustpad's ConnectionStatus; while connected the
+// wording additionally distinguishes acknowledged edits ("All changes
+// saved") from ones still in flight ("Saving...").
+type ConnState = "connected" | "disconnected" | "desynchronized";
+let connState: ConnState = "disconnected";
 
-function setStatus(state: keyof typeof statusTexts): void {
-  statusEl.className = `status-dot ${state}`;
-  statusTextEl.textContent = statusTexts[state];
+function statusText(): string {
+  switch (connState) {
+    case "desynchronized":
+      return "Disconnected, please refresh.";
+    case "connected":
+      if (readonly) return "You are connected!";
+      return client.synchronized ? "All changes saved" : "Saving...";
+    case "disconnected":
+      return client.synchronized
+        ? "Connecting to the server..."
+        : "Connecting — you have unsaved changes...";
+  }
 }
+
+// Local acks land within milliseconds, which would flash "Saving..." too
+// briefly to read. Once shown it stays up for a minimum time — but only the
+// switch back to "All changes saved" waits; connection trouble replaces it
+// immediately.
+const SAVING_MIN_MS = 500;
+let savingShownAt = 0;
+let statusTimer: number | undefined;
+
+function renderStatus(): void {
+  statusEl.className = `status-dot ${connState}`;
+  const text = statusText();
+  const current = statusTextEl.textContent;
+  window.clearTimeout(statusTimer);
+  if (current === "Saving..." && text === "All changes saved") {
+    const shownFor = Date.now() - savingShownAt;
+    if (shownFor < SAVING_MIN_MS) {
+      // Re-render from live state when the hold expires: a newer edit or a
+      // disconnect in the meantime wins over this deferred switch.
+      statusTimer = window.setTimeout(renderStatus, SAVING_MIN_MS - shownFor);
+      return;
+    }
+  }
+  if (text === "Saving..." && current !== "Saving...") savingShownAt = Date.now();
+  statusTextEl.textContent = text;
+}
+
+function setStatus(state: ConnState): void {
+  connState = state;
+  renderStatus();
+}
+
+// Closing the tab with unacknowledged edits would lose them; once
+// desynchronized they cannot be sent anyway, so don't trap the reload the
+// banner just asked for.
+window.addEventListener("beforeunload", (e) => {
+  if (!client.synchronized && !killed) e.preventDefault();
+});
 
 // The relative wording ("expires in 23 hours") goes stale, so re-render it
 // every minute; the tooltip carries the absolute timestamp.
@@ -404,6 +451,7 @@ const conn = new Connection(wsUrl, {
   },
   onHistory(start, ops) {
     client.handleHistory(start, ops);
+    renderStatus(); // an acknowledgement may have landed: "All changes saved"
   },
   onLanguage(lang) {
     if (languages[lang] === undefined) return;

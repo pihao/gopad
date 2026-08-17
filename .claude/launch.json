@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "gopad",
-      "runtimeExecutable": "./gopad",
-      "runtimeArgs": [],
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["ADMIN_USER=admin", "ADMIN_PASSWORD=admin", "./gopad"],
       "port": 3030
     }
   ]
