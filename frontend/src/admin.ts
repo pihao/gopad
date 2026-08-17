@@ -73,7 +73,7 @@ async function load(): Promise<void> {
     const idCell = document.createElement("td");
     idCell.dataset.label = "Document";
     const link = document.createElement("a");
-    link.href = `/#${doc.id}`;
+    link.href = `${basePath}#${doc.id}`;
     link.target = "_blank";
     link.textContent = doc.id;
     idCell.appendChild(link);
