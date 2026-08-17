@@ -118,7 +118,14 @@ function render(data: AdminList): void {
     del.addEventListener("click", async () => {
       if (!confirm(`Delete document "${doc.id}"? Connected users will be kicked.`)) return;
       const resp = await fetch(`${apiBase}${basePath}api/admin/documents/${doc.id}`, { method: "DELETE" });
-      if (!resp.ok && resp.status !== 404) {
+      if (resp.status === 404) {
+        // Stale row: the document expired or was deleted elsewhere. Refresh
+        // first — load() clears the error banner — then explain.
+        await load();
+        errorEl.textContent = `Document "${doc.id}" no longer exists; the list has been refreshed.`;
+        return;
+      }
+      if (!resp.ok) {
         errorEl.textContent = `Delete failed: ${resp.status} ${resp.statusText}`;
         return;
       }
