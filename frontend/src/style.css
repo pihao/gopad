@@ -397,6 +397,17 @@ main {
     background: rgba(0, 0, 0, 0.5);
     z-index: 25;
   }
+
+  /* iOS Safari auto-zooms when a focused element's font size is below
+     16px, forcing horizontal panning afterwards. Meeting the threshold
+     avoids that without viewport hacks (pinch-zoom stays available). */
+  #editor .cm-scroller {
+    font-size: 16px;
+  }
+
+  #name-input {
+    font-size: 16px;
+  }
 }
 
 /* --- Remote cursors --- */
