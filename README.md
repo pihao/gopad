@@ -89,6 +89,10 @@ server {
         proxy_read_timeout 7d;              # sockets are idle between edits
         proxy_send_timeout 7d;
         proxy_buffering off;
+
+        # If you add a Content-Security-Policy, the app needs
+        # `img-src data:` (inline SVG icons) and `style-src 'self' 'unsafe-inline'` (for CodeMirror):
+        # add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'";
     }
 }
 ```
