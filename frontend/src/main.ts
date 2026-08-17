@@ -6,6 +6,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 
 import { generateName } from "./animals";
 import { basePath } from "./base";
+import { caretColor, nameColor, randomHue } from "./colors";
 import { Connection } from "./connection";
 import type { CursorData, UserInfo } from "./connection";
 import { changesToOperation, cpToUtf16, operationToChanges, utf16ToCp } from "./conversion";
@@ -90,7 +91,7 @@ const storedName = localStorage.getItem("gopad-name");
 const storedHue = Number(localStorage.getItem("gopad-hue"));
 let myInfo: UserInfo = {
   name: storedName || generateName(),
-  hue: Number.isFinite(storedHue) && storedHue >= 0 ? storedHue : Math.floor(Math.random() * 360),
+  hue: Number.isFinite(storedHue) && storedHue >= 0 ? storedHue : randomHue(),
 };
 nameInput.value = myInfo.name;
 
@@ -107,6 +108,7 @@ let expiresAt = 0; // unix seconds; 0 = unknown
 const remoteAnnotation = Annotation.define<boolean>();
 const languageCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
+const wrapCompartment = new Compartment();
 
 const client = new OTClient(
   (revision, op) => conn.send({ Edit: { revision, operation: op } }),
@@ -120,6 +122,10 @@ const client = new OTClient(
 
 let cursorTimer: number | undefined;
 
+// Line wrapping is a local view preference (not synced like the language).
+const wrapToggle = $<HTMLInputElement>("#wrap-toggle");
+wrapToggle.checked = localStorage.getItem("gopad-wrap") !== "0";
+
 const view = new EditorView({
   parent: $("#editor"),
   state: EditorState.create({
@@ -130,6 +136,7 @@ const view = new EditorView({
       remoteCursorExtension,
       languageCompartment.of(languageExtension("plaintext")),
       readOnlyCompartment.of(readonly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : []),
+      wrapCompartment.of(wrapToggle.checked ? EditorView.lineWrapping : []),
       EditorView.updateListener.of((update) => {
         const isRemote = update.transactions.some((tr) => tr.annotation(remoteAnnotation));
         if (update.docChanged && !isRemote) {
@@ -178,8 +185,8 @@ function refreshRemoteCursors(): void {
 // --- Sidebar ----------------------------------------------------------------
 
 function renderMe(): void {
-  hueBtn.style.color = `hsl(${myInfo.hue}, 90%, 55%)`;
-  nameInput.style.color = `hsl(${myInfo.hue}, 90%, 65%)`;
+  hueBtn.style.color = caretColor(myInfo.hue);
+  nameInput.style.color = nameColor(myInfo.hue);
 }
 
 // The "me" row (#me-row) is a persistent element so re-rendering the list
@@ -200,7 +207,7 @@ function renderUsers(): void {
     const name = document.createElement("span");
     name.className = "user-name";
     name.textContent = info.name;
-    name.style.color = `hsl(${info.hue}, 90%, 65%)`;
+    name.style.color = nameColor(info.hue);
     li.append(icon, name);
     usersEl.appendChild(li);
   }
@@ -227,7 +234,10 @@ nameInput.addEventListener("keydown", (e) => {
 });
 
 hueBtn.addEventListener("click", () => {
-  myInfo = { ...myInfo, hue: Math.floor(Math.random() * 360) };
+  // Steer clear of the colors already on screen, and of the current one so
+  // the click always visibly changes something.
+  const taken = [...users.values()].map((u) => u.hue).concat(myInfo.hue);
+  myInfo = { ...myInfo, hue: randomHue(taken) };
   sendMyInfo();
 });
 
@@ -261,6 +271,13 @@ ttlSelect.value = "86400";
 ttlSelect.disabled = readonly;
 ttlSelect.addEventListener("change", () => {
   conn.send({ SetExpiry: { ttlSeconds: Number(ttlSelect.value) } });
+});
+
+wrapToggle.addEventListener("change", () => {
+  localStorage.setItem("gopad-wrap", wrapToggle.checked ? "1" : "0");
+  view.dispatch({
+    effects: wrapCompartment.reconfigure(wrapToggle.checked ? EditorView.lineWrapping : []),
+  });
 });
 
 // navigator.clipboard only exists in secure contexts (HTTPS or localhost), so

@@ -5,6 +5,8 @@ import type { Range, Text } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
 
+import { caretColor, labelBackground, selectionBackground } from "./colors";
+
 export interface RemoteCursorSet {
   id: number;
   name: string;
@@ -42,11 +44,11 @@ class CaretWidget extends WidgetType {
   toDOM(): HTMLElement {
     const caret = document.createElement("span");
     caret.className = "remote-caret";
-    caret.style.borderLeftColor = `hsl(${this.hue}, 90%, 55%)`;
+    caret.style.borderLeftColor = caretColor(this.hue);
     const label = document.createElement("span");
     label.className = this.below ? "remote-caret-label flash below" : "remote-caret-label flash";
     label.textContent = this.name;
-    label.style.backgroundColor = `hsl(${this.hue}, 60%, 30%)`;
+    label.style.backgroundColor = labelBackground(this.hue);
     caret.appendChild(label);
     return caret;
   }
@@ -67,7 +69,7 @@ function buildDecorations(users: RemoteCursorSet[], doc: Text): DecorationSet {
         ranges.push(
           Decoration.mark({
             class: "remote-selection",
-            attributes: { style: `background-color: hsla(${u.hue}, 90%, 50%, 0.22)` },
+            attributes: { style: `background-color: ${selectionBackground(u.hue)}` },
           }).range(from, to),
         );
       }

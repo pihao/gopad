@@ -268,6 +268,18 @@ select {
   margin-top: 6px;
 }
 
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.check-row input {
+  margin: 0;
+  accent-color: #5e81ac;
+}
+
 /* --- About (mirrors rustpad's sidebar section, slightly dimmed) --- */
 
 .about p {
