@@ -16,6 +16,8 @@ import (
 // before comparison so the check is constant-time regardless of length.
 func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Admin data is live state; no intermediary may cache it.
+		w.Header().Set("Cache-Control", "no-store")
 		user, pass, ok := r.BasicAuth()
 		if !ok || !timingSafeEqual(user, s.adminUser) || !timingSafeEqual(pass, s.adminPassword) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="gopad admin"`)
