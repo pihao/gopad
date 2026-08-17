@@ -5,39 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gopad Admin</title>
     <style>
+      /* Palette tokens (mirrored from src/style.css — keep in sync). */
+      :root {
+        --bg: #1f2430;
+        --bg-panel: #171b24;
+        --surface: #2c3242;
+        --surface-hover: #3b4252;
+        --border: #2c3242;
+        --border-strong: #3b4252;
+        --text: #d8dee9;
+        --text-secondary: #a9b3c2;
+        --text-dim: #8791a5;
+        --link: #88c0d0;
+        --accent: #5e81ac;
+        --danger: #e06c75;
+      }
       * { box-sizing: border-box; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         font-size: 14px;
         line-height: 1.4;
-        background: #1f2430;
-        color: #d8dee9;
+        background: var(--bg);
+        color: var(--text);
         margin: 0;
         padding: 16px;
       }
+      /* Keyboard focus ring; mouse clicks stay outline-free via :focus-visible. */
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
       h1 { font-size: 16px; font-weight: 700; margin: 0; }
       #topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-      .check-row { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #7b859c; }
-      .check-row input { margin: 0; accent-color: #5e81ac; }
+      .check-row { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-dim); }
+      .check-row input { margin: 0; accent-color: var(--accent); }
       table { border-collapse: collapse; width: 100%; }
-      th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid #2c3242; font-size: 14px; }
-      th { color: #7b859c; font-weight: 600; }
+      th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+      th { color: var(--text-dim); font-weight: 600; }
       th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
-      th[data-sort]:hover { color: #d8dee9; }
-      th.active { color: #d8dee9; }
+      th[data-sort]:hover { color: var(--text); }
+      th.active { color: var(--text); }
+      tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
       #sort-bar { display: none; }
-      a { color: #88c0d0; text-decoration: none; }
+      a { color: var(--link); text-decoration: none; }
       a:hover { text-decoration: underline; }
       button {
-        background: #2c3242; color: #d8dee9; border: 1px solid #3b4252;
+        background: var(--surface); color: var(--text); border: 1px solid var(--border-strong);
         border-radius: 0; padding: 4px 10px; cursor: pointer;
         font-size: 14px; font-family: inherit;
       }
-      button:hover { background: #3b4252; }
-      button.danger { color: #e06c75; }
+      button:hover { background: var(--surface-hover); }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button:disabled:hover { background: var(--surface); }
+      button.danger { color: var(--danger); }
       .pager { margin-top: 16px; display: flex; gap: 10px; align-items: center; justify-content: center; }
-      .muted { color: #7b859c; }
-      #error { color: #e06c75; margin: 10px 0; }
+      .muted { color: var(--text-dim); }
+      #error { color: var(--danger); margin: 10px 0; }
 
       /* Mobile: rows become stacked cards with per-field labels; sorting
          moves from the (hidden) table header to a compact control bar. */
@@ -46,17 +72,17 @@
         #sort-bar { display: flex; gap: 8px; margin-bottom: 12px; }
         #sort-bar select {
           flex: 1; height: 32px; font-size: 14px; font-family: inherit;
-          background: #2c3242; color: #d8dee9; border: 1px solid #3b4252;
+          background: var(--surface); color: var(--text); border: 1px solid var(--border-strong);
           border-radius: 0; padding: 0 8px;
         }
         thead { display: none; }
         table, tbody, tr, td { display: block; width: 100%; }
-        tr { border: 1px solid #2c3242; margin-bottom: 10px; padding: 8px 10px; }
+        tr { border: 1px solid var(--border); margin-bottom: 10px; padding: 8px 10px; }
         td { border-bottom: none; padding: 2px 0; display: flex; gap: 8px; font-size: 13px; }
         td a { word-break: break-all; }
         td::before {
           content: attr(data-label);
-          color: #7b859c;
+          color: var(--text-dim);
           width: 76px;
           flex: none;
         }

@@ -10,6 +10,21 @@
   /* 26px toggle button + 8px above and below, so the fixed toggle at
      top: 8px sits vertically centered in the bar. */
   --topbar-h: 42px;
+
+  /* Palette tokens (mirrored in admin.html's inline styles — keep in sync).
+     The three text levels all clear WCAG AA (4.5:1) on both backgrounds. */
+  --bg: #1f2430;
+  --bg-panel: #171b24;
+  --surface: #2c3242;
+  --surface-hover: #3b4252;
+  --border: #2c3242;
+  --border-strong: #3b4252;
+  --text: #d8dee9;
+  --text-secondary: #a9b3c2;
+  --text-dim: #8791a5;
+  --link: #88c0d0;
+  --accent: #5e81ac;
+  --danger: #e06c75;
 }
 
 html,
@@ -24,8 +39,17 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.4;
-  background: #1f2430;
-  color: #d8dee9;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Keyboard focus ring; mouse clicks stay outline-free via :focus-visible. */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 #app {
@@ -44,8 +68,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: #171b24;
-  border-bottom: 1px solid #2c3242;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
 }
 
 /* --- Sidebar toggle: sits at the sidebar's right edge when open, floats
@@ -78,8 +102,8 @@ body.sidebar-open #sidebar-toggle {
   width: var(--sidebar-w);
   flex: none;
   overflow-y: auto;
-  background: #171b24;
-  border-right: 1px solid #2c3242;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
   padding: 16px;
   margin-left: calc(-1 * var(--sidebar-w));
   transition: margin-left 0.15s ease;
@@ -108,11 +132,11 @@ body.sidebar-open #sidebar {
 .status-text {
   font-size: 14px;
   font-style: italic;
-  color: #b3bcc9; /* gray.300 */
+  color: var(--text-secondary);
 }
 
 .badge {
-  background: #3b4252;
+  background: var(--surface-hover);
   padding: 1px 6px;
   font-size: 12px;
   color: #ebcb8b;
@@ -133,8 +157,8 @@ body.sidebar-open #sidebar {
 }
 
 #copy-link {
-  border-color: #5e81ac;
-  color: #88c0d0;
+  border-color: var(--accent);
+  color: var(--link);
 }
 
 #copy-link:hover {
@@ -151,9 +175,9 @@ body.sidebar-open #sidebar {
 }
 
 button {
-  background: #2c3242;
-  color: #d8dee9;
-  border: 1px solid #3b4252;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
   border-radius: 0;
   padding: 4px 10px;
   cursor: pointer;
@@ -162,14 +186,23 @@ button {
 }
 
 button:hover {
-  background: #3b4252;
+  background: var(--surface-hover);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button:disabled:hover {
+  background: var(--surface);
 }
 
 #sidebar h3 {
   margin: 16px 0 6px;
   font-size: 16px;
   font-weight: 700;
-  color: #a9b3c2; /* dimmed relative to body text */
+  color: var(--text-secondary); /* dimmed relative to body text */
 }
 
 #users {
@@ -194,7 +227,7 @@ button:hover {
   width: 20px;
   height: 20px;
   padding: 0;
-  color: #7b859c;
+  color: var(--text-dim);
   flex: none;
 }
 
@@ -213,7 +246,7 @@ button:hover {
 }
 
 #hue-btn.me-icon:hover {
-  background: #2c3242;
+  background: var(--surface);
 }
 
 #name-input {
@@ -229,17 +262,17 @@ button:hover {
 }
 
 #name-input:hover {
-  border-color: #3b4252;
+  border-color: var(--border-strong);
 }
 
 #name-input:focus {
   outline: none;
-  border-color: #5e81ac;
-  background: #2c3242;
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
 .you-label {
-  color: #7b859c;
+  color: var(--text-dim);
   font-size: 12px;
   flex: none;
 }
@@ -247,23 +280,23 @@ button:hover {
 select {
   width: 100%;
   height: 32px;
-  background: #2c3242;
-  color: #d8dee9;
-  border: 1px solid #3b4252;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
   border-radius: 0;
   padding: 0 30px 0 8px;
   font-size: 14px;
   font-family: inherit;
   /* Custom chevron, inset from the right edge (the native one hugs it). */
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%237b859c'%3E%3Cpath d='M4.2 6l3.8 4 3.8-4H4.2z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%238791a5'%3E%3Cpath d='M4.2 6l3.8 4 3.8-4H4.2z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;
 }
 
 .muted {
-  color: #7b859c;
+  color: var(--text-dim);
   font-size: 13px;
   margin-top: 6px;
 }
@@ -277,19 +310,18 @@ select {
 
 .check-row input {
   margin: 0;
-  accent-color: #5e81ac;
+  accent-color: var(--accent);
 }
 
 /* --- About (mirrors rustpad's sidebar section, slightly dimmed) --- */
 
 .about p {
   margin: 0 0 6px;
-  color: #99a3b3;
+  color: var(--text-secondary);
 }
 
-/* rustpad's inline links: blue.600, semibold. */
 .about a {
-  color: #2b6cb0;
+  color: var(--link);
   font-weight: 600;
   text-decoration: none;
 }
@@ -301,7 +333,7 @@ select {
 .inspired {
   margin-top: 12px;
   font-size: 12px;
-  color: #7b859c;
+  color: var(--text-dim);
 }
 
 /* --- Main area --- */
