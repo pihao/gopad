@@ -1,11 +1,12 @@
 * {
   box-sizing: border-box;
-  /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom.
-     The viewport meta alone is ignored by iOS Safari, and iOS honors
-     touch-action only on the touched element itself — not ancestors — so
-     the rule must hit every element (mirrored in admin.html's inline
-     styles — keep in sync; JS fallbacks live in noZoom.ts). */
-  touch-action: pan-x pan-y;
+  /* Only `manipulation` reliably kills iOS double-tap smart zoom (WebKit
+     mishandles pan-x pan-y for double-tap), and iOS honors touch-action
+     only on the touched element itself — not ancestors — so the rule must
+     hit every element. Pinch zoom is blocked elsewhere: noZoom.ts cancels
+     iOS gesture events; the viewport meta covers Android. (Mirrored in
+     admin.html's inline styles — keep in sync.) */
+  touch-action: manipulation;
 }
 
 /* Single sidebar width: xs (320px) whenever the viewport has room for it
