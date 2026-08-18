@@ -1,5 +1,11 @@
 * {
   box-sizing: border-box;
+  /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom.
+     The viewport meta alone is ignored by iOS Safari, and iOS honors
+     touch-action only on the touched element itself — not ancestors — so
+     the rule must hit every element (mirrored in admin.html's inline
+     styles — keep in sync; JS fallbacks live in noZoom.ts). */
+  touch-action: pan-x pan-y;
 }
 
 /* Single sidebar width: xs (320px) whenever the viewport has room for it
@@ -31,10 +37,6 @@ html,
 body {
   height: 100%;
   margin: 0;
-  /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom;
-     the viewport meta alone is ignored by iOS Safari (mirrored in
-     admin.html's inline styles — keep in sync). */
-  touch-action: pan-x pan-y;
 }
 
 /* Type scale and spacing follow rustpad's sidebar (Chakra defaults):

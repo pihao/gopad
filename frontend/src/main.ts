@@ -1,4 +1,5 @@
 import "./style.css";
+import "./noZoom";
 import { basicSetup } from "codemirror";
 import { Annotation, Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
@@ -36,10 +37,6 @@ function parseHash(): { id: string; readonly: boolean } {
 const { id: docId, readonly } = parseHash();
 // Navigating to a different document is handled by a full reload.
 window.addEventListener("hashchange", () => location.reload());
-
-// Older iOS Safari ignores touch-action for pinch; gesturestart is its
-// proprietary pinch event, so cancelling it disables zoom there too.
-document.addEventListener("gesturestart", (e) => e.preventDefault());
 
 // --- DOM handles ------------------------------------------------------------
 

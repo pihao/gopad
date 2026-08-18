@@ -20,10 +20,10 @@
         --accent: #5e81ac;
         --danger: #e06c75;
       }
-      * { box-sizing: border-box; }
-      /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom;
-         the viewport meta alone is ignored by iOS Safari. */
-      html, body { touch-action: pan-x pan-y; }
+      /* touch-action: pan-x pan-y permits scrolling but blocks pinch and
+         double-tap zoom; iOS honors it only on the touched element itself,
+         so it must hit every element (JS fallbacks live in noZoom.ts). */
+      * { box-sizing: border-box; touch-action: pan-x pan-y; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         font-size: 14px;
@@ -94,8 +94,8 @@
         td.actions button { width: 100%; }
       }
     </style>
-    <script type="module" crossorigin src="/assets/admin-0wFvoi3b.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/format-0vOt4NBI.js">
+    <script type="module" crossorigin src="/assets/admin-OWOuHjib.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/noZoom-h1fvfIEQ.js">
   </head>
   <body>
     <div id="topbar">
