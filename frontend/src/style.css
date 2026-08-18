@@ -31,6 +31,10 @@ html,
 body {
   height: 100%;
   margin: 0;
+  /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom;
+     the viewport meta alone is ignored by iOS Safari (mirrored in
+     admin.html's inline styles — keep in sync). */
+  touch-action: pan-x pan-y;
 }
 
 /* Type scale and spacing follow rustpad's sidebar (Chakra defaults):
@@ -399,8 +403,8 @@ main {
   }
 
   /* iOS Safari auto-zooms when a focused element's font size is below
-     16px, forcing horizontal panning afterwards. Meeting the threshold
-     avoids that without viewport hacks (pinch-zoom stays available). */
+     16px. Zoom is disabled app-wide now, but meeting the threshold keeps
+     focus behavior sane on older iOS and stays readable on phones. */
   #editor .cm-scroller {
     font-size: 16px;
   }

@@ -3,6 +3,10 @@
 import { basePath } from "./base";
 import { fmtDate, fmtRelative } from "./format";
 
+// Older iOS Safari ignores touch-action for pinch; gesturestart is its
+// proprietary pinch event, so cancelling it disables zoom there too.
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+
 interface AdminDoc {
   id: string;
   sizeBytes: number;

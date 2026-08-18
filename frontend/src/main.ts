@@ -37,6 +37,10 @@ const { id: docId, readonly } = parseHash();
 // Navigating to a different document is handled by a full reload.
 window.addEventListener("hashchange", () => location.reload());
 
+// Older iOS Safari ignores touch-action for pinch; gesturestart is its
+// proprietary pinch event, so cancelling it disables zoom there too.
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+
 // --- DOM handles ------------------------------------------------------------
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
@@ -151,6 +155,12 @@ const view = new EditorView({
       }),
     ],
   }),
+});
+
+// The page itself never scrolls, so give the topbar the role the OS status
+// bar plays on phones: tapping it brings the editor back to the top.
+$("#topbar").addEventListener("click", () => {
+  view.scrollDOM.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 function broadcastCursor(): void {

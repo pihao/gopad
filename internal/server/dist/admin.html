@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Gopad Admin</title>
     <style>
       /* Palette tokens (mirrored from src/style.css — keep in sync). */
@@ -21,6 +21,9 @@
         --danger: #e06c75;
       }
       * { box-sizing: border-box; }
+      /* pan-x pan-y permits scrolling but blocks pinch and double-tap zoom;
+         the viewport meta alone is ignored by iOS Safari. */
+      html, body { touch-action: pan-x pan-y; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         font-size: 14px;
@@ -91,7 +94,7 @@
         td.actions button { width: 100%; }
       }
     </style>
-    <script type="module" crossorigin src="/assets/admin-DEm1vOt7.js"></script>
+    <script type="module" crossorigin src="/assets/admin-0wFvoi3b.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/format-0vOt4NBI.js">
   </head>
   <body>
