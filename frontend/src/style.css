@@ -160,7 +160,7 @@ body.sidebar-open #sidebar {
 .btn-row button {
   /* Content-sized basis: the longer read-only label gets more room and the
      Copy link button gives up width instead of the text overflowing. */
-  flex: 1 1 auto;
+  flex: 1 1 0;
   white-space: nowrap;
   padding: 8px 6px;
   font-size: 13px;
