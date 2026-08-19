@@ -2,6 +2,8 @@ GO ?= go
 NPM ?= npm
 SRC = cmd internal
 PKG = ./cmd/... ./internal/...
+# Stamp the real build moment; tag/commit come from -buildvcs (the default).
+LDFLAGS = -X gopad/internal/server.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 .PHONY: build backend frontend test test-go test-frontend clean docker
 
@@ -11,9 +13,9 @@ PKG = ./cmd/... ./internal/...
 build: backend
 
 backend:
-	$(GO) build -o gopad ./cmd/gopad
-	GOOS=linux GOARCH=arm64 $(GO) build -o gopad-linux-arm64 ./cmd/gopad
-	GOOS=linux GOARCH=amd64 $(GO) build -o gopad-linux-amd64 ./cmd/gopad
+	$(GO) build -ldflags "$(LDFLAGS)" -o gopad ./cmd/gopad
+	GOOS=linux GOARCH=arm64 $(GO) build -ldflags "$(LDFLAGS)" -o gopad-linux-arm64 ./cmd/gopad
+	GOOS=linux GOARCH=amd64 $(GO) build -ldflags "$(LDFLAGS)" -o gopad-linux-amd64 ./cmd/gopad
 
 ## frontend: regenerate internal/server/dist from frontend/ sources.
 ## Requires node/npm (or run it in a node container).

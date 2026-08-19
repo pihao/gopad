@@ -8,7 +8,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /gopad ./cmd/gopad
+RUN CGO_ENABLED=0 go build -trimpath \
+    -ldflags="-s -w -X gopad/internal/server.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    -o /gopad ./cmd/gopad
 
 FROM alpine:3.20
 RUN adduser -D -u 1000 gopad && mkdir /data && chown gopad /data

@@ -98,6 +98,7 @@ func New(cfg Config) *Server {
 	s.mux.HandleFunc("GET /api/readonly/{id}", s.handleReadonlySocket)
 	s.mux.HandleFunc("GET /api/readonlyid/{id}", s.handleReadonlyID)
 	s.mux.HandleFunc("GET /api/text/{id}", s.handleText)
+	s.mux.HandleFunc("GET /api/version", handleVersion)
 	if s.adminUser != "" && s.adminPassword != "" {
 		s.mux.HandleFunc("GET /admin", s.requireAdmin(s.handleAdminPage))
 		s.mux.HandleFunc("GET /api/admin/documents", s.requireAdmin(s.handleAdminList))

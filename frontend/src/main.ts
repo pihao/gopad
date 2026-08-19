@@ -11,7 +11,7 @@ import { caretColor, nameColor, randomHue } from "./colors";
 import { Connection } from "./connection";
 import type { CursorData, UserInfo } from "./connection";
 import { changesToOperation, cpToUtf16, operationToChanges, utf16ToCp } from "./conversion";
-import { fmtDate, fmtRelative } from "./format";
+import { fmtDate, fmtRFC3339, fmtRelative } from "./format";
 import { remoteCursorExtension, setRemoteCursors } from "./cursors";
 import type { RemoteCursorSet } from "./cursors";
 import { languageExtension, languages } from "./languages";
@@ -353,6 +353,28 @@ if (!readonly) {
 }
 
 renderMe();
+
+// --- Build info: tag (or short commit) at the sidebar's very bottom; clicking
+// the label toggles the build timestamp. Hidden entirely when unknown. -------
+
+fetch(`${basePath}api/version`)
+  .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
+  .then(({ tag, commit, dirty, buildTime }: { tag: string; commit: string; dirty: boolean; buildTime: number }) => {
+    const label = tag || commit;
+    if (!label) return;
+    const versionBtn = $<HTMLButtonElement>("#build-version");
+    versionBtn.textContent = dirty ? `${label}+dirty` : label;
+    $("#build-info").hidden = false;
+    if (!buildTime) return;
+    const timeEl = $("#build-time");
+    timeEl.textContent = fmtRFC3339(buildTime);
+    versionBtn.addEventListener("click", () => {
+      // visibility (not hidden) so the reserved space is constant and the
+      // bottom-pinned About section doesn't shift when toggling.
+      timeEl.classList.toggle("invisible");
+    });
+  })
+  .catch(() => {});
 
 // --- Connection -------------------------------------------------------------
 
