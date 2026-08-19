@@ -25,7 +25,7 @@ export interface Handlers {
   onLanguage(lang: string): void;
   onUserInfo(id: number, info: UserInfo | null): void;
   onUserCursor(id: number, data: CursorData): void;
-  onExpiry(ttlSeconds: number, expiresAt: number): void;
+  onExpiry(ttlSeconds: number, expiresAt: number, createdAt: number, updatedAt: number): void;
   onKilled(reason: string): void;
 }
 
@@ -99,8 +99,8 @@ export class Connection {
         selections: u.data.selections ?? [],
       });
     } else if (msg.Expiry !== undefined) {
-      const e = msg.Expiry as { ttlSeconds: number; expiresAt: number };
-      this.h.onExpiry(e.ttlSeconds, e.expiresAt);
+      const e = msg.Expiry as { ttlSeconds: number; expiresAt: number; createdAt?: number; updatedAt?: number };
+      this.h.onExpiry(e.ttlSeconds, e.expiresAt, e.createdAt ?? 0, e.updatedAt ?? 0);
     } else if (msg.Killed !== undefined) {
       this.h.onKilled((msg.Killed as { reason: string }).reason);
     }

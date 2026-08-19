@@ -1,5 +1,5 @@
 // rustpad's animal list (src/animals.json), used for default user names.
-export const animals = [
+const animals = [
   "Alligator", "Ant", "Anteater", "Antelope", "Arctic Fox", "Armadillo",
   "Badger", "Bat", "Beaver", "Bee", "Beetle", "Black Bear", "Buffalo",
   "Butterfly", "Camel", "Cat", "Chameleon", "Cheetah", "Chicken", "Cicada",

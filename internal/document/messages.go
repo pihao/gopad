@@ -72,6 +72,8 @@ type UserCursorMsg struct {
 type ExpiryMsg struct {
 	TTLSeconds int64 `json:"ttlSeconds"`
 	ExpiresAt  int64 `json:"expiresAt"` // unix seconds
+	CreatedAt  int64 `json:"createdAt"` // unix seconds
+	UpdatedAt  int64 `json:"updatedAt"` // unix seconds
 }
 
 type KilledMsg struct {

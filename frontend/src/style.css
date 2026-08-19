@@ -79,8 +79,8 @@ a:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
-/* --- Sidebar toggle: sits at the sidebar's right edge when open, floats
-       top-left when collapsed --- */
+/* --- Sidebar toggle: lives at the left end of the topbar, sliding right
+       along with the sidebar's edge when it opens --- */
 
 #sidebar-toggle {
   position: fixed;
@@ -96,7 +96,7 @@ a:focus-visible {
 }
 
 body.sidebar-open #sidebar-toggle {
-  left: calc(var(--sidebar-w) - 34px);
+  left: calc(var(--sidebar-w) + 8px);
 }
 
 #backdrop {
@@ -108,6 +108,8 @@ body.sidebar-open #sidebar-toggle {
 #sidebar {
   width: var(--sidebar-w);
   flex: none;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
@@ -156,7 +158,9 @@ body.sidebar-open #sidebar {
 }
 
 .btn-row button {
-  flex: 1;
+  /* Content-sized basis: the longer read-only label gets more room and the
+     Copy link button gives up width instead of the text overflowing. */
+  flex: 1 1 auto;
   white-space: nowrap;
   padding: 8px 6px;
   font-size: 13px;
@@ -308,6 +312,11 @@ select {
   margin-top: 6px;
 }
 
+/* The created/updated lines sit directly under the stats line. */
+.doc-time {
+  margin-top: 2px;
+}
+
 .check-row {
   display: flex;
   align-items: center;
@@ -321,6 +330,13 @@ select {
 }
 
 /* --- About (mirrors rustpad's sidebar section, slightly dimmed) --- */
+
+/* Pinned to the sidebar's bottom edge when there is spare room; scrolls
+   normally with the rest once content overflows. */
+.about {
+  margin-top: auto;
+  padding-top: 16px;
+}
 
 .about p {
   margin: 0 0 6px;
@@ -369,7 +385,9 @@ main {
 
 #editor .cm-scroller {
   overflow: auto;
-  font-family: ui-monospace, Menlo, "SF Mono", Consolas, monospace;
+  /* Maple Mono renders for users who have it installed (its CN build keeps
+     CJK/Latin at a strict 2:1 width); everyone else falls back. */
+  font-family: "Maple Mono NF CN", ui-monospace, Menlo, "SF Mono", Consolas, monospace;
   font-size: 13px;
 }
 
@@ -381,7 +399,9 @@ main {
     top: 0;
     bottom: 0;
     left: 0;
-    width: min(100vw, var(--sidebar-w));
+    /* Always leave 42px (26px toggle + gaps) at the right edge so the
+       toggle and a tappable strip of backdrop survive any viewport width. */
+    width: min(100vw - 42px, var(--sidebar-w));
     margin-left: 0;
     transform: translateX(-100%);
     transition: transform 0.15s ease;
@@ -394,7 +414,7 @@ main {
   }
 
   body.sidebar-open #sidebar-toggle {
-    left: calc(min(100vw, var(--sidebar-w)) - 34px);
+    left: calc(min(100vw - 42px, var(--sidebar-w)) + 8px);
   }
 
   body.sidebar-open #backdrop {

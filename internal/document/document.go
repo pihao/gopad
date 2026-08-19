@@ -354,6 +354,8 @@ func (d *Document) expiryLocked() *ExpiryMsg {
 	return &ExpiryMsg{
 		TTLSeconds: int64(d.ttl / time.Second),
 		ExpiresAt:  d.updatedAt.Add(d.ttl).Unix(),
+		CreatedAt:  d.createdAt.Unix(),
+		UpdatedAt:  d.updatedAt.Unix(),
 	}
 }
 

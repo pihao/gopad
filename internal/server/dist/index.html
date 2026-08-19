@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Gopad</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>" />
-    <script type="module" crossorigin src="/assets/main-CSpmwf42.js"></script>
+    <script type="module" crossorigin src="/assets/main-BP33AIB4.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/noZoom-Dcg0FVNQ.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-Dgzzohop.css">
+    <link rel="stylesheet" crossorigin href="/assets/main-nlNoBcRa.css">
   </head>
   <body>
     <button id="sidebar-toggle" type="button" title="Toggle sidebar">❯</button>
@@ -15,10 +15,9 @@
     <div id="app">
       <aside id="sidebar">
         <section>
-          <h3>Document</h3>
           <div class="btn-row">
             <button id="copy-link" type="button">Copy link</button>
-            <button id="copy-readonly" type="button" hidden>Copy read-only</button>
+            <button id="copy-readonly" type="button" hidden>Copy read-only link</button>
           </div>
         </section>
         <section>
@@ -47,6 +46,12 @@
         <section>
           <h3>Editor</h3>
           <label class="check-row"><input type="checkbox" id="wrap-toggle" checked /> Wrap long lines</label>
+        </section>
+        <section>
+          <h3>Document</h3>
+          <div id="doc-stats" class="muted"></div>
+          <div id="doc-updated" class="muted doc-time" hidden></div>
+          <div id="doc-created" class="muted doc-time" hidden></div>
         </section>
         <section class="about">
           <h3>About</h3>

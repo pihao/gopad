@@ -1,11 +1,7 @@
 // The classic ot.js client state machine: Synchronized / AwaitingConfirm /
 // AwaitingWithBuffer, expressed with two nullable operations.
 import { Operation } from "./ot";
-
-export interface UserOpWire {
-  id: number;
-  operation: unknown;
-}
+import type { UserOpWire } from "./connection";
 
 export class OTClient {
   /** Number of server operations integrated so far. */

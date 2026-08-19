@@ -55,6 +55,9 @@ const languageSelect = $<HTMLSelectElement>("#language");
 const ttlSelect = $<HTMLSelectElement>("#ttl");
 const expiresAtEl = $("#expires-at");
 const copyLinkBtn = $<HTMLButtonElement>("#copy-link");
+const docStatsEl = $("#doc-stats");
+const docCreatedEl = $("#doc-created");
+const docUpdatedEl = $("#doc-updated");
 
 $("#readonly-badge").hidden = !readonly;
 
@@ -105,6 +108,8 @@ const cursorStamps = new Map<number, number>();
 let myId = -1;
 let killed = false;
 let expiresAt = 0; // unix seconds; 0 = unknown
+let createdAt = 0; // unix seconds; 0 = unknown
+let updatedAt = 0; // unix seconds; 0 = unknown
 
 const remoteAnnotation = Annotation.define<boolean>();
 const languageCompartment = new Compartment();
@@ -148,7 +153,10 @@ const view = new EditorView({
           window.clearTimeout(cursorTimer);
           cursorTimer = window.setTimeout(broadcastCursor, 80);
         }
-        if (update.docChanged) refreshRemoteCursors();
+        if (update.docChanged) {
+          refreshRemoteCursors();
+          renderDocStats();
+        }
       }),
     ],
   }),
@@ -337,7 +345,7 @@ if (!readonly) {
       copyRoBtn.hidden = false;
       copyRoBtn.addEventListener("click", () => {
         copyText(`${location.origin}${basePath}#view/${readonlyId}`).then((ok) =>
-          flashCopied(copyRoBtn, ok, "Copy read-only"),
+          flashCopied(copyRoBtn, ok, "Copy read-only link"),
         );
       });
     })
@@ -413,7 +421,35 @@ function renderExpiry(): void {
   expiresAtEl.textContent = `expires ${fmtRelative(expiresAt)}`;
   expiresAtEl.title = fmtDate(expiresAt);
 }
-setInterval(renderExpiry, 60_000);
+
+function renderDocTimes(): void {
+  if (createdAt) {
+    docCreatedEl.hidden = false;
+    docCreatedEl.textContent = `created ${fmtRelative(createdAt)}`;
+    docCreatedEl.title = fmtDate(createdAt);
+  }
+  if (updatedAt) {
+    docUpdatedEl.hidden = false;
+    docUpdatedEl.textContent = `updated ${fmtRelative(updatedAt)}`;
+    docUpdatedEl.title = fmtDate(updatedAt);
+  }
+}
+
+function renderDocStats(): void {
+  const text = view.state.doc.toString();
+  // Counted in code points, matching the OT protocol's notion of length.
+  const chars = utf16ToCp(text, text.length);
+  const lines = view.state.doc.lines;
+  docStatsEl.textContent =
+    `${chars.toLocaleString()} ${chars === 1 ? "character" : "characters"} · ` +
+    `${lines.toLocaleString()} ${lines === 1 ? "line" : "lines"}`;
+}
+renderDocStats();
+
+setInterval(() => {
+  renderExpiry();
+  renderDocTimes();
+}, 60_000);
 
 function showBanner(text: string): void {
   bannerEl.textContent = text;
@@ -459,6 +495,12 @@ const conn = new Connection(wsUrl, {
   onHistory(start, ops) {
     client.handleHistory(start, ops);
     renderStatus(); // an acknowledgement may have landed: "All changes saved"
+    // Every committed op (ours or a peer's) touches the document; the initial
+    // replay is corrected by the Expiry message that follows it on connect.
+    if (ops.length > 0) {
+      updatedAt = Math.floor(Date.now() / 1000);
+      renderDocTimes();
+    }
   },
   onLanguage(lang) {
     if (languages[lang] === undefined) return;
@@ -480,7 +522,7 @@ const conn = new Connection(wsUrl, {
     cursorStamps.set(id, (cursorStamps.get(id) ?? 0) + 1);
     refreshRemoteCursors();
   },
-  onExpiry(ttlSeconds, expiresAtSec) {
+  onExpiry(ttlSeconds, expiresAtSec, createdAtSec, updatedAtSec) {
     if (![...ttlSelect.options].some((o) => o.value === String(ttlSeconds))) {
       const opt = document.createElement("option");
       opt.value = String(ttlSeconds);
@@ -489,7 +531,10 @@ const conn = new Connection(wsUrl, {
     }
     ttlSelect.value = String(ttlSeconds);
     expiresAt = expiresAtSec;
+    if (createdAtSec) createdAt = createdAtSec;
+    if (updatedAtSec) updatedAt = updatedAtSec;
     renderExpiry();
+    renderDocTimes();
   },
   onKilled(reason) {
     killed = true;
