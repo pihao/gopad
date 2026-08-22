@@ -1,0 +1,16 @@
+[Unit]
+Description=Gopad
+Requires=network.target
+After=network.target
+
+[Service]
+User=%i
+Type=simple
+Environment='ADMIN_USER=gopad'
+Environment='ADMIN_PASSWORD=xxx'
+Environment='BASE_PATH=gopad'
+WorkingDirectory=/opt/gopad
+ExecStart=/opt/gopad/gopad
+
+[Install]
+WantedBy=multi-user.target
